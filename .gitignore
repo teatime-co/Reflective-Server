@@ -1,5 +1,6 @@
 # dirs and files
 notes/
+weaviate-data/
 
 # Editors
 .vscode/
