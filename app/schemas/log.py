@@ -20,13 +20,14 @@ class LogBase(BaseModel):
     content: str
 
 class LogCreate(LogBase):
-    pass
+    id: UUID4  # Client must provide the ID
 
 class LogUpdate(LogBase):
     pass
 
 class LogResponse(LogBase):
     id: UUID4
+    weaviate_id: Optional[str]  # Include weaviate_id in response
     created_at: datetime
     updated_at: datetime
     word_count: Optional[int]

@@ -61,23 +61,31 @@ async def create_log(log_data: LogCreate, db: Session = Depends(get_db)):
         print("[ERROR] Failed to create log in vector database")
         raise HTTPException(status_code=500, detail="Failed to create log in vector database")
     
-    # Create log in SQL database
+    # Create log in SQL database with client-provided ID
     new_log = Log(
-        id=weaviate_id,
+        id=log_data.id,
+        weaviate_id=weaviate_id,
         content=log_data.content,
         word_count=len(log_data.content.split()),
         processing_status="processed"
     )
-    db.add(new_log)
     
-    # Process tags
-    for tag_name in tag_names:
-        tag = Tag.get_or_create(db, tag_name)
-        new_log.tags.append(tag)
-    
-    db.commit()
-    db.refresh(new_log)
-    return new_log
+    try:
+        db.add(new_log)
+        
+        # Process tags
+        for tag_name in tag_names:
+            tag = Tag.get_or_create(db, tag_name)
+            new_log.tags.append(tag)
+        
+        db.commit()
+        db.refresh(new_log)
+        return new_log
+    except Exception as e:
+        # If SQL insertion fails, cleanup Weaviate entry
+        rag_service.delete_log(weaviate_id)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/logs/", response_model=List[LogResponse])
 async def get_logs(
@@ -91,14 +99,14 @@ async def get_logs(
     if tag:
         # Use Weaviate for tag-based search
         weaviate_results = rag_service.get_logs_by_tag(tag, limit)
-        log_ids = [result["id"] for result in weaviate_results]
-        return db.query(Log).filter(Log.id.in_(log_ids)).all()
+        weaviate_ids = [result["id"] for result in weaviate_results]
+        return db.query(Log).filter(Log.weaviate_id.in_(weaviate_ids)).all()
     
     if search:
         # Use Weaviate for semantic search
         weaviate_results = rag_service.semantic_search(search, limit)
-        log_ids = [result["id"] for result in weaviate_results]
-        return db.query(Log).filter(Log.id.in_(log_ids)).all()
+        weaviate_ids = [result["id"] for result in weaviate_results]
+        return db.query(Log).filter(Log.weaviate_id.in_(weaviate_ids)).all()
     
     # Regular pagination without search
     return db.query(Log).order_by(Log.created_at.desc()).offset(skip).limit(limit).all()
@@ -124,7 +132,7 @@ async def update_log(log_id: str, log_data: LogUpdate, db: Session = Depends(get
         new_tag_names = extract_tags(log_data.content)
         
         # Update in Weaviate
-        if not rag_service.update_log(log_id, log_data.content, new_tag_names):
+        if not rag_service.update_log(log.weaviate_id, log_data.content, new_tag_names):
             raise HTTPException(status_code=500, detail="Failed to update log in vector database")
         
         # Update in SQL database
@@ -158,7 +166,7 @@ async def delete_log(log_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Log not found")
     
     # Delete from Weaviate
-    if not rag_service.delete_log(log_id):
+    if not rag_service.delete_log(log.weaviate_id):
         raise HTTPException(status_code=500, detail="Failed to delete log from vector database")
     
     # Delete from SQL database

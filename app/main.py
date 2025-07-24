@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import logs
+from app.api import logs, tags
 from app.database import engine
 from app.models.models import Base
 import os
@@ -29,6 +29,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(logs.router, prefix="/api")
+app.include_router(tags.router, prefix="/api")
 
 @app.get("/")
 async def root():

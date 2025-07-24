@@ -19,7 +19,8 @@ tag_log_association = Table(
 class Log(Base):
     __tablename__ = 'logs'
 
-    id = Column(UUID, primary_key=True, default=uuid.uuid4)
+    id = Column(UUID, primary_key=True)  # No default, will be provided by client
+    weaviate_id = Column(String, unique=True, nullable=True)  # Store Weaviate ID separately
     content = Column(String, nullable=False)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -38,6 +39,7 @@ class Tag(Base):
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False, unique=True, index=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    last_used_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
     color = Column(String, nullable=True)  # hex color for UI
 
     # Relationships
@@ -52,13 +54,20 @@ class Tag(Base):
         # Try to find existing tag
         existing_tag = db.query(cls).filter(cls.name == normalized_name).first()
         if existing_tag:
+            existing_tag.last_used_at = datetime.utcnow()
             return existing_tag
         
         # Create new tag if it doesn't exist
-        new_tag = cls(name=normalized_name)
+        new_tag = cls(
+            name=normalized_name,
+            last_used_at=datetime.utcnow()
+        )
         db.add(new_tag)
-        # Note: We don't commit here to allow the caller to manage the transaction
         return new_tag
+
+    def mark_used(self):
+        """Update the last_used_at timestamp"""
+        self.last_used_at = datetime.utcnow()
 
 class Query(Base):
     __tablename__ = 'queries'
