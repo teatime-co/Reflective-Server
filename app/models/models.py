@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 import uuid
+import random
 
 Base = declarative_base()
 
@@ -45,9 +46,23 @@ class Tag(Base):
     # Relationships
     logs = relationship('Log', secondary=tag_log_association, back_populates='tags')
 
+    @staticmethod
+    def generate_random_color() -> str:
+        """Generate a random color hex string matching the client's implementation"""
+        r = random.uniform(0.2, 0.9)
+        g = random.uniform(0.2, 0.9)
+        b = random.uniform(0.2, 0.9)
+        return f"#{int(r * 255):02X}{int(g * 255):02X}{int(b * 255):02X}"
+
     @classmethod
-    def get_or_create(cls, db, name: str):
-        """Get an existing tag by name or create a new one if it doesn't exist"""
+    def get_or_create(cls, db, name: str, color: str = None):
+        """Get an existing tag by name or create a new one if it doesn't exist
+        
+        Args:
+            db: Database session
+            name: Tag name
+            color: Optional hex color string from client
+        """
         # Normalize the tag name
         normalized_name = name.strip()
         
@@ -55,12 +70,16 @@ class Tag(Base):
         existing_tag = db.query(cls).filter(cls.name == normalized_name).first()
         if existing_tag:
             existing_tag.last_used_at = datetime.utcnow()
+            # Update color if provided and different from current
+            if color and existing_tag.color != color:
+                existing_tag.color = color
             return existing_tag
         
         # Create new tag if it doesn't exist
         new_tag = cls(
             name=normalized_name,
-            last_used_at=datetime.utcnow()
+            last_used_at=datetime.utcnow(),
+            color=color if color else cls.generate_random_color()  # Use provided color or generate new one
         )
         db.add(new_tag)
         return new_tag
@@ -76,6 +95,7 @@ class Query(Base):
     query_text = Column(String, nullable=False)
     embedding = Column(LargeBinary, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    
     execution_time = Column(Float, nullable=True)  # in seconds
     result_count = Column(Integer, nullable=True)
 

@@ -23,6 +23,8 @@ class WeaviateRAGService:
                         "PERSISTENCE_DATA_PATH": persistence_dir,
                         "DEFAULT_VECTORIZER_MODULE": "none",  # We'll handle vectorization ourselves
                         "ENABLE_MODULES": "",  # Disable all modules since we'll do vectorization
+                        "DISK_USE_WARNING_PERCENTAGE": "95",  # Increase disk usage threshold
+                        "DISK_USE_READONLY_PERCENTAGE": "98"  # Increase readonly threshold
                     }
                 )
             )

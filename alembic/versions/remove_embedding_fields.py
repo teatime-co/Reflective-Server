@@ -1,7 +1,7 @@
 """Remove embedding fields from Log model
 
 Revision ID: remove_embedding_fields
-Revises: # will be filled by alembic
+Revises: initial_schema
 Create Date: 2024-03-24 01:30:00.000000
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'remove_embedding_fields'
-down_revision = None  # will be filled by alembic
+down_revision = 'initial_schema'  # Point to initial schema
 branch_labels = None
 depends_on = None
 
