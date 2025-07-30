@@ -61,24 +61,8 @@ class WeaviateRAGService:
                     "dataType": ["text"],
                 },
                 {
-                    "name": "created_at",
-                    "dataType": ["date"],
-                },
-                {
-                    "name": "updated_at",
-                    "dataType": ["date"],
-                },
-                {
-                    "name": "word_count",
-                    "dataType": ["int"],
-                },
-                {
-                    "name": "processing_status",
-                    "dataType": ["string"],
-                },
-                {
                     "name": "tags",
-                    "dataType": ["string[]"],
+                    "dataType": ["string[]"],  # Explicitly using string[] for array of strings
                 }
             ]
         }
@@ -95,16 +79,9 @@ class WeaviateRAGService:
         # Get embeddings from Ollama
         vector = self._get_embeddings(content)
         
-        # Use datetime's built-in ISO format (RFC3339 compatible)
-        now = datetime.utcnow().isoformat() + "Z"
-        
-        # Prepare data object
+        # Prepare data object with only essential fields
         data_object = {
             "content": content,
-            "created_at": now,
-            "updated_at": now,
-            "word_count": len(content.split()),
-            "processing_status": "processed",
             "tags": tags or []
         }
 
@@ -128,7 +105,8 @@ class WeaviateRAGService:
             
             result = (
                 self.client.query
-                .get(self.class_name, ["content", "tags", "created_at", "_additional {certainty}"])
+                .get(self.class_name, ["content", "tags"])
+                .with_additional(["id", "certainty"])
                 .with_near_vector({
                     "vector": query_vector,
                     "certainty": 0.7  # Minimum similarity threshold
@@ -140,12 +118,22 @@ class WeaviateRAGService:
             # Extract and format results
             if result and "data" in result and "Get" in result["data"]:
                 objects = result["data"]["Get"][self.class_name]
+                
+                # Deduplicate results by ID
+                seen_ids = set()
+                unique_objects = []
+                for obj in objects:
+                    obj_id = obj["_additional"]["id"]
+                    if obj_id not in seen_ids:
+                        seen_ids.add(obj_id)
+                        unique_objects.append(obj)
+                
                 return [{
                     "content": obj["content"],
                     "tags": obj.get("tags", []),
-                    "created_at": obj["created_at"],
+                    "id": obj["_additional"]["id"],
                     "relevance_score": obj["_additional"]["certainty"]
-                } for obj in objects]
+                } for obj in unique_objects]
             return []
         except Exception as e:
             print(f"Error in semantic search: {e}")
@@ -156,18 +144,11 @@ class WeaviateRAGService:
         # Get new embeddings from Ollama
         vector = self._get_embeddings(content)
         
-        # Use datetime's built-in ISO format (RFC3339 compatible)
-        now = datetime.utcnow().isoformat() + "Z"
-        
-        # Prepare update object
+        # Prepare update object with only essential fields
         data_object = {
             "content": content,
-            "updated_at": now,
-            "word_count": len(content.split()),
-            "processing_status": "processed"
+            "tags": tags if tags is not None else []
         }
-        if tags is not None:
-            data_object["tags"] = tags
 
         try:
             self.client.data_object.update(
@@ -195,21 +176,44 @@ class WeaviateRAGService:
 
     def get_logs_by_tag(self, tag: str, limit: int = 100) -> List[Dict]:
         """Get logs with specific tag"""
-        result = (
-            self.client.query
-            .get(self.class_name, ["content", "tags", "created_at"])
-            .with_where({
-                "path": ["tags"],
-                "operator": "ContainsAny",
-                "valueString": tag
-            })
-            .with_limit(limit)
-            .do()
-        )
+        try:
+            print(f"Searching for tag: {tag}")  # Debug log
+            result = (
+                self.client.query
+                .get(self.class_name, ["content", "tags"])
+                .with_additional(["id"])
+                .with_where({
+                    "path": ["tags"],
+                    "operator": "ContainsAny",
+                    "valueStringArray": [tag]
+                })
+                .with_limit(limit)
+                .do()
+            )
 
-        if result and "data" in result and "Get" in result["data"]:
-            return result["data"]["Get"][self.class_name]
-        return []
+            print(f"Raw result: {result}")  # Debug log
+
+            if (result and 
+                isinstance(result, dict) and 
+                "data" in result and 
+                "Get" in result["data"] and 
+                self.class_name in result["data"]["Get"] and
+                result["data"]["Get"][self.class_name] is not None):
+                
+                objects = result["data"]["Get"][self.class_name]
+                print(f"Found {len(objects)} objects with tag {tag}")  # Debug log
+                return [{
+                    "content": obj["content"],
+                    "tags": obj.get("tags", []),
+                    "id": obj["_additional"]["id"]
+                } for obj in objects]
+            
+            print(f"No results found for tag {tag}")  # Debug log
+            return []
+            
+        except Exception as e:
+            print(f"Error in get_logs_by_tag: {str(e)}")
+            return []
 
     def batch_add_logs(self, logs: List[Dict[str, any]]) -> List[str]:
         """Batch add multiple logs to Weaviate"""
