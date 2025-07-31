@@ -21,6 +21,7 @@ class LogBase(BaseModel):
 
 class LogCreate(LogBase):
     id: UUID4  # Client must provide the ID
+    tags: List[str] = []  # List of tag names
 
 class LogUpdate(LogBase):
     pass

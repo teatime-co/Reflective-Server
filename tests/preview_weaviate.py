@@ -3,38 +3,42 @@
 import sys
 import os
 from pathlib import Path
-
-# Add the project root directory to Python path
-project_root = str(Path(__file__).parent.parent.absolute())
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-import weaviate
+import requests
+import json
 from pprint import pprint
 import time
 from typing import List, Dict
-from app.services.weaviate_rag_service import WeaviateRAGService
-from reset_dbs import reset_databases
+
+# Configuration
+API_BASE_URL = "http://localhost:8000/api"  # Adjust port if needed
 
 def print_section(title):
     print(f"\n{'=' * 20} {title} {'=' * 20}")
 
-# Reset all databases and initialize services
-print_section("Database Reset")
-reset_databases()
+# Helper function to make API requests
+def api_request(method, endpoint, data=None, params=None):
+    url = f"{API_BASE_URL}{endpoint}"
+    try:
+        response = getattr(requests, method.lower())(url, json=data, params=params)
+        response.raise_for_status()
+        return response.json() if response.text else None
+    except requests.exceptions.RequestException as e:
+        print(f"API request failed: {e}")
+        return None
 
-# Initialize the RAG service with clean database
-rag_service = WeaviateRAGService(persistence_dir="./weaviate-data")
-
-# 1. Check Schema
-print_section("Schema Check")
-schema = rag_service.client.schema.get()
-pprint(schema)
+# 1. Check if server is running
+print_section("Server Check")
+try:
+    response = requests.get(f"{API_BASE_URL}/logs")
+    print("Server is running and accessible")
+except requests.exceptions.ConnectionError:
+    print("Error: Cannot connect to the server. Please ensure it's running.")
+    sys.exit(1)
 
 # 2. Get initial statistics
 print_section("Initial Statistics")
-stats = rag_service.client.query.aggregate("Log").with_meta_count().do()
-total_logs = stats["data"]["Aggregate"]["Log"][0]["meta"]["count"]
+initial_logs = api_request("GET", "/logs")
+total_logs = len(initial_logs) if initial_logs else 0
 print(f"Total logs in database: {total_logs}")
 
 # 3. Add test logs
@@ -64,12 +68,12 @@ test_logs = [
 
 test_ids = []
 for log in test_logs:
-    test_id = rag_service.add_log(log["content"], log["tags"])
-    if test_id:
-        test_ids.append(test_id)
-        print(f"Added test log with ID: {test_id}")
+    result = api_request("POST", "/logs", data={"content": log["content"]})
+    if result:
+        test_ids.append(result["id"])
+        print(f"Added test log with ID: {result['id']}")
 
-time.sleep(1)  # Give Weaviate a moment to process
+time.sleep(1)  # Give server a moment to process
 
 # 4. Test semantic search with various queries
 print_section("Semantic Search Tests")
@@ -86,12 +90,12 @@ test_queries = [
 
 for query in test_queries:
     print(f"\nSearching for: '{query}'")
-    results = rag_service.semantic_search(query, limit=3)
+    results = api_request("POST", "/logs/search", params={"query": query})
     if results:
         for result in results:
-            print(f"\nMatch (relevance score: {result['relevance_score']:.3f}):")
+            print(f"\nMatch (relevance score: {result.get('relevance_score', 0):.3f}):")
             print(f"Content: {result['content']}")
-            print(f"Tags: {', '.join(result['tags'])}")
+            print(f"Tags: {', '.join(result.get('tags', []))}")
     else:
         print("No results found")
 
@@ -108,12 +112,12 @@ conceptual_queries = [
 
 for query in conceptual_queries:
     print(f"\nSearching for: '{query}'")
-    results = rag_service.semantic_search(query, limit=3)
+    results = api_request("POST", "/logs/search", params={"query": query})
     if results:
         for result in results:
-            print(f"\nMatch (relevance score: {result['relevance_score']:.3f}):")
+            print(f"\nMatch (relevance score: {result.get('relevance_score', 0):.3f}):")
             print(f"Content: {result['content']}")
-            print(f"Tags: {', '.join(result['tags'])}")
+            print(f"Tags: {', '.join(result.get('tags', []))}")
     else:
         print("No results found")
 
@@ -128,21 +132,21 @@ tag_tests = [
 
 for tag in tag_tests:
     print(f"\nSearching for logs with tag: '{tag}'")
-    results = rag_service.get_logs_by_tag(tag)
+    results = api_request("GET", "/logs", params={"tag": tag})
     if results:
         print(f"Found {len(results)} logs with tag '{tag}':")
         for result in results:
             print("\n---")
             print(f"ID: {result['id']}")
             print(f"Content: {result['content']}")
-            print(f"Tags: {', '.join(result['tags'])}")
+            print(f"Tags: {', '.join(result.get('tags', []))}")
     else:
         print(f"No logs found with tag '{tag}'")
 
 # 7. Clean up test data
 print_section("Cleanup")
 for test_id in test_ids:
-    if rag_service.delete_log(test_id):
+    if api_request("DELETE", f"/logs/{test_id}"):
         print(f"Successfully deleted test log with ID: {test_id}")
     else:
         print(f"Failed to delete test log with ID: {test_id}")

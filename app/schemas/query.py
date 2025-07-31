@@ -1,23 +1,38 @@
 from pydantic import BaseModel, UUID4
 from datetime import datetime
 from typing import Optional, List
+from .log import LogResponse
 
 class QueryBase(BaseModel):
+    """Base schema for queries"""
     query_text: str
+    created_at: datetime
+    execution_time: Optional[float] = None
+    result_count: Optional[int] = None
 
-class QueryCreate(QueryBase):
-    pass
+    class Config:
+        from_attributes = True
 
-class QueryResultBase(BaseModel):
+class SearchMetadata(BaseModel):
+    """Search-specific metadata"""
     relevance_score: float
     snippet_text: str
     snippet_start_index: int
     snippet_end_index: int
-    context_before: Optional[str]
-    context_after: Optional[str]
+    context_before: Optional[str] = None
+    context_after: Optional[str] = None
     rank: int
 
-class QueryResult(QueryResultBase):
+    class Config:
+        from_attributes = True
+
+class SearchResult(LogResponse, SearchMetadata):
+    """Complete search result combining log data with search metadata"""
+    class Config:
+        from_attributes = True
+
+class QueryResult(SearchMetadata):
+    """Database model for search results"""
     id: UUID4
     query_id: UUID4
     log_id: UUID4
@@ -26,17 +41,17 @@ class QueryResult(QueryResultBase):
         from_attributes = True
 
 class Query(QueryBase):
+    """Complete query record"""
     id: UUID4
-    created_at: datetime
-    execution_time: Optional[float]
-    result_count: Optional[int]
     results: List[QueryResult]
 
     class Config:
         from_attributes = True
 
-class QueryResponse(QueryResult):
-    log_content: str  # Include the full log content in the response
+class QueryWithScore(QueryBase):
+    """Query with similarity score for suggestions and similar queries"""
+    id: str  # Store UUID as string to avoid conversion issues
+    relevance_score: Optional[float] = None  # Used for similar queries
 
     class Config:
         from_attributes = True 

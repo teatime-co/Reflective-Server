@@ -8,13 +8,13 @@ from datetime import datetime
 # Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.schemas.query import QueryResponse
+from app.schemas.query import SearchResult
 
 # Configuration
 BASE_URL = "http://localhost:8000"  # Adjust if your server runs on a different port
 SEARCH_ENDPOINT = f"{BASE_URL}/search"
 
-def test_semantic_search(query: str, top_k: int = 5) -> List[QueryResponse]:
+def test_semantic_search(query: str, top_k: int = 5) -> List[SearchResult]:
     """
     Test the semantic search endpoint with the given query and parameters
     """

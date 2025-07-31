@@ -93,9 +93,7 @@ class Query(Base):
 
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
     query_text = Column(String, nullable=False)
-    embedding = Column(LargeBinary, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    
     execution_time = Column(Float, nullable=True)  # in seconds
     result_count = Column(Integer, nullable=True)
 
