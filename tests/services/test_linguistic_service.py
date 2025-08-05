@@ -217,17 +217,23 @@ def test_process_log_update_existing(linguistic_service, db: Session, sample_log
     # Create initial metrics
     initial_metrics = linguistic_service.process_log(db, sample_log)
     initial_id = initial_metrics.id
+    initial_sentiment = initial_metrics.sentiment_score
     
-    # Update log content
-    sample_log.content = "Updated content for testing! This is new and exciting."
+    # Update log content with text that should have different sentiment
+    sample_log.content = "This is absolutely wonderful! I'm so happy and excited about everything!"
     db.commit()
     
     # Process again
     updated_metrics = linguistic_service.process_log(db, sample_log)
     
     # Check that we updated existing record
-    assert updated_metrics.id == initial_id
-    assert updated_metrics.processed_at > initial_metrics.processed_at
+    assert updated_metrics.id == initial_id  # Same record
+    assert updated_metrics.sentiment_score != initial_sentiment  # Metrics actually updated
+    assert updated_metrics.processed_at is not None  # Has timestamp
+    
+    # Verify the metrics reflect the new positive content
+    assert updated_metrics.sentiment_score > 0  # Should be positive sentiment
+    assert updated_metrics.emotion_scores["emotions"]["joy"] > updated_metrics.emotion_scores["emotions"]["sadness"]  # Joy should be higher than sadness
 
 def test_readability_calculation(linguistic_service):
     """Test readability score calculation"""

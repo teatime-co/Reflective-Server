@@ -1,6 +1,9 @@
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Get the project root directory (where app/ is located)
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(project_root)
 
 from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.orm import sessionmaker
@@ -136,7 +139,7 @@ def reset_databases():
         return False
     
     # Run Alembic migrations
-    alembic_ini = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'alembic.ini')
+    alembic_ini = os.path.join(project_root, 'alembic.ini')
     try:
         subprocess.run(['alembic', '-c', alembic_ini, 'upgrade', 'head'], check=True)
         print("✅ Database migrations completed successfully!")
@@ -150,7 +153,7 @@ def reset_databases():
         return False
     
     # Reset Embedded Weaviate
-    persistence_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "weaviate-data")
+    persistence_dir = os.path.join(project_root, "weaviate-data")
     if not reset_weaviate(persistence_dir):
         print("❌ Error resetting Weaviate")
         return False

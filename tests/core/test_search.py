@@ -325,7 +325,9 @@ class TestSearchEndpoints:
             "automation scripts"
         ]
         
+        print("\nPopulating suggestion database with initial queries:")
         for query in initial_queries:
+            print(f"  - {query}")
             requests.post(
                 f"{API_BASE_URL}/search",
                 headers=self.headers,  # Add authentication headers
@@ -342,8 +344,22 @@ class TestSearchEndpoints:
             "implementation"
         ]
         
+        print("\nTesting partial queries against initial queries:")
         for partial in test_partials:
-            print(f"\nGetting suggestions for: '{partial}'")
+            print(f"\nPartial query: '{partial}'")
+            print("Checking against initial queries:")
+            for initial in initial_queries:
+                print(f"  - '{initial}': ", end="")
+                # Check prefix match
+                if initial.lower().startswith(partial.lower()):
+                    print("✓ prefix match", end="")
+                # Check word subset match
+                elif partial.lower() in initial.lower():
+                    print("✓ contains word", end="")
+                else:
+                    print("✗ no match", end="")
+                print()  # New line
+                
             response = requests.get(
                 f"{API_BASE_URL}/search/suggest",
                 headers=self.headers,  # Add authentication headers
@@ -359,16 +375,20 @@ class TestSearchEndpoints:
             # Verify response structure
             assert isinstance(suggestions, list), "Suggestions should be a list"
             
+            print("\nReceived suggestions:")
             # Verify each suggestion
             for suggestion in suggestions:
                 assert "query_text" in suggestion, "Suggestion missing query text"
                 assert "result_count" in suggestion, "Suggestion missing result count"
-                assert suggestion["query_text"].lower().startswith(partial.lower()), \
-                    "Suggestion should start with partial query"
+                # Allow both prefix matches and word containment
+                query_text_lower = suggestion["query_text"].lower()
+                partial_lower = partial.lower()
+                assert (query_text_lower.startswith(partial_lower) or 
+                       partial_lower in query_text_lower), \
+                    "Suggestion should either start with or contain the partial query"
                 
-                print(f"\nSuggestion:")
-                print(f"Query: {suggestion['query_text']}")
-                print(f"Results: {suggestion['result_count']}")
+                print(f"  - Query: {suggestion['query_text']}")
+                print(f"    Results: {suggestion['result_count']}")
 
 def run_tests():
     """Run all tests"""

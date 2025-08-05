@@ -136,10 +136,11 @@ class LinguisticService:
         for key, value in metrics.items():
             setattr(linguistic_metrics, key, value)
         
-        # Ensure new timestamp is different from old one
+        # Ensure new timestamp is always greater than old one
         new_processed_at = datetime.utcnow()
-        if old_processed_at:
-            # Always add a microsecond to ensure new timestamp is strictly greater
+        if old_processed_at and new_processed_at <= old_processed_at:
+            # If new timestamp would be less than or equal to old one,
+            # explicitly set it to 1 microsecond after the old timestamp
             new_processed_at = datetime.fromtimestamp(
                 old_processed_at.timestamp() + 0.000001
             )
