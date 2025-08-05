@@ -5,7 +5,7 @@ from typing import List, Dict, Optional
 import os
 from datetime import datetime
 import requests
-from app.utils.uuid_helpers import format_uuid_for_weaviate
+from app.utils.uuid_utils import format_uuid_for_weaviate
 
 class WeaviateRAGService:
     def __init__(self, persistence_dir: str = "./weaviate-data", use_embedded: bool = True):
@@ -16,25 +16,56 @@ class WeaviateRAGService:
         
         if use_embedded:
             print("[DEBUG] Setting up embedded Weaviate client...")
+            embedded_options = EmbeddedOptions(
+                persistence_data_path=persistence_dir,
+                additional_env_vars={
+                    "AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED": "true",
+                    "PERSISTENCE_DATA_PATH": persistence_dir,
+                    "DEFAULT_VECTORIZER_MODULE": "none",
+                    "ENABLE_MODULES": "",
+                    "DISK_USE_WARNING_PERCENTAGE": "95",
+                    "DISK_USE_READONLY_PERCENTAGE": "98",
+                    # Explicitly disable all modules
+                    "TRANSFORMERS_INFERENCE_API": "",
+                    "OPENAI_APIKEY": "",
+                    "COHERE_APIKEY": "",
+                    "AZURE_APIKEY": "",
+                    "PALM_APIKEY": "",
+                    "HUGGINGFACE_APIKEY": "",
+                    "CONTEXTIONARY_URL": "",
+                    "QNA_INFERENCE_API": "",
+                    "NER_INFERENCE_API": "",
+                    "SPELLCHECK_INFERENCE_API": "",
+                    "SUM_INFERENCE_API": "",
+                    "TEXT_INFERENCE_API": "",
+                    "IMAGE_INFERENCE_API": "",
+                    "AUDIO_INFERENCE_API": "",
+                    "MULTI2VEC_BIND_INFERENCE_API": "",
+                    "MULTI2VEC_CLIP_INFERENCE_API": "",
+                    "MULTI2VEC_PALM_INFERENCE_API": "",
+                    "RERANKER_INFERENCE_API": "",
+                    "GENERATIVE_COHERE_INFERENCE_API": "",
+                    "GENERATIVE_OPENAI_INFERENCE_API": "",
+                    "GENERATIVE_PALM_INFERENCE_API": "",
+                    "GENERATIVE_AWS_INFERENCE_API": ""
+                }
+            )
+            
             self.client = weaviate.Client(
-                embedded_options=EmbeddedOptions(
-                    persistence_data_path=persistence_dir,
-                    additional_env_vars={
-                        "AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED": "true",
-                        "PERSISTENCE_DATA_PATH": persistence_dir,
-                        "DEFAULT_VECTORIZER_MODULE": "none",  # We'll handle vectorization ourselves
-                        "ENABLE_MODULES": "",  # Disable all modules since we'll do vectorization
-                        "DISK_USE_WARNING_PERCENTAGE": "95",  # Increase disk usage threshold
-                        "DISK_USE_READONLY_PERCENTAGE": "98"  # Increase readonly threshold
-                    }
-                )
+                embedded_options=embedded_options
             )
             print("[DEBUG] Embedded client setup complete")
         else:
             # Default to localhost if not using embedded
             weaviate_url = os.getenv("WEAVIATE_URL", "http://localhost:8080")
             print(f"[DEBUG] Setting up external Weaviate client at {weaviate_url}")
-            self.client = weaviate.Client(url=weaviate_url)
+            self.client = weaviate.Client(
+                url=weaviate_url,
+                additional_headers={
+                    "X-OpenAI-Api-Key": "",  # Explicitly set to empty to disable OpenAI
+                    "X-Cohere-Api-Key": "",   # Explicitly set to empty to disable Cohere
+                }
+            )
             print("[DEBUG] External client setup complete")
             
         self.log_class = "Log"
@@ -73,15 +104,21 @@ class WeaviateRAGService:
         # Log schema
         log_schema = {
             "class": self.log_class,
-            "vectorizer": "none",  # We'll handle vectorization ourselves
+            "description": "A log entry with content and tags",
+            "vectorIndexConfig": {
+                "distance": "cosine"
+            },
+            "vectorizer": "none",
             "properties": [
                 {
                     "name": "content",
                     "dataType": ["text"],
+                    "description": "The main content of the log entry"
                 },
                 {
                     "name": "tags",
                     "dataType": ["string[]"],
+                    "description": "Tags associated with the log entry"
                 }
             ]
         }
@@ -89,27 +126,36 @@ class WeaviateRAGService:
         # Query schema
         query_schema = {
             "class": self.query_class,
+            "description": "A search query with metadata",
+            "vectorIndexConfig": {
+                "distance": "cosine"
+            },
             "vectorizer": "none",
             "properties": [
                 {
                     "name": "query_text",
                     "dataType": ["text"],
+                    "description": "The search query text"
                 },
                 {
                     "name": "created_at",
                     "dataType": ["date"],
+                    "description": "When the query was made"
                 },
                 {
                     "name": "result_count",
                     "dataType": ["int"],
+                    "description": "Number of results returned"
                 },
                 {
                     "name": "execution_time",
                     "dataType": ["number"],
+                    "description": "Time taken to execute the query"
                 },
                 {
-                    "name": "sql_id",  # Reference to SQL database ID
+                    "name": "sql_id",
                     "dataType": ["string"],
+                    "description": "Reference to SQL database ID"
                 }
             ]
         }
@@ -119,22 +165,30 @@ class WeaviateRAGService:
             class_name = schema["class"]
             try:
                 print(f"[DEBUG] Checking if schema exists for class: {class_name}")
-                existing_schema = self.client.schema.get(class_name)
-                print(f"[DEBUG] Schema exists for {class_name}")
-                if self.debug:
-                    print(f"[DEBUG] Existing schema: {existing_schema}")
-            except weaviate.exceptions.UnexpectedStatusCodeException as e:
-                print(f"[DEBUG] Schema not found for {class_name}, creating...")
+                # Try to get the schema first
                 try:
-                    self.client.schema.create_class(schema)
-                    print(f"[DEBUG] Successfully created schema for {class_name}")
-                except Exception as create_e:
-                    print(f"[ERROR] Failed to create schema for {class_name}:")
-                    print(f"Error type: {type(create_e).__name__}")
-                    print(f"Error message: {str(create_e)}")
-                    import traceback
-                    traceback.print_exc()
-                    raise
+                    existing_schema = self.client.schema.get(class_name)
+                    print(f"[DEBUG] Schema exists for {class_name}")
+                    if self.debug:
+                        print(f"[DEBUG] Existing schema: {existing_schema}")
+                    # Delete existing schema if it exists
+                    print(f"[DEBUG] Deleting existing schema for {class_name}")
+                    self.client.schema.delete_class(class_name)
+                except weaviate.exceptions.UnexpectedStatusCodeException:
+                    print(f"[DEBUG] No existing schema found for {class_name}")
+                
+                # Create new schema
+                print(f"[DEBUG] Creating schema for {class_name}")
+                self.client.schema.create_class(schema)
+                print(f"[DEBUG] Successfully created schema for {class_name}")
+                
+            except Exception as e:
+                print(f"[ERROR] Failed to handle schema for {class_name}:")
+                print(f"Error type: {type(e).__name__}")
+                print(f"Error message: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                raise
 
     def add_log(self, content: str, tags: List[str] = None) -> str:
         """Add a log entry to Weaviate"""
@@ -413,6 +467,10 @@ class WeaviateRAGService:
     def get_similar_queries(self, query_text: str, limit: int = 5, min_certainty: float = 0.7) -> List[Dict]:
         """Find similar previous queries"""
         try:
+            if self.debug:
+                print(f"\n[DEBUG] Finding similar queries for: {query_text}")
+                print(f"Limit: {limit}, Min certainty: {min_certainty}")
+            
             query_vector = self._get_embeddings(query_text)
             
             result = (
@@ -429,33 +487,54 @@ class WeaviateRAGService:
                     "vector": query_vector,
                     "certainty": min_certainty
                 })
-                .with_limit(limit)
+                .with_limit(limit * 2)  # Get more results to ensure we have enough after filtering
                 .do()
             )
 
             if result and "data" in result and "Get" in result["data"]:
                 objects = result["data"]["Get"][self.query_class]
-                print(f"\n[DEBUG] Raw objects from Weaviate: {objects}")  # Debug the raw objects
-                return [{
-                    "query_text": obj["query_text"],
-                    "result_count": obj["result_count"],
-                    "created_at": obj["created_at"],
-                    "sql_id": obj["sql_id"],
-                    "execution_time": obj.get("execution_time"),
-                    "relevance_score": obj["_additional"]["certainty"]
-                } for obj in objects]
+                if self.debug:
+                    print(f"[DEBUG] Found {len(objects)} potential matches")
+                
+                # Process and filter results
+                processed_results = []
+                for obj in objects:
+                    certainty = obj["_additional"]["certainty"]
+                    if certainty >= min_certainty:
+                        processed_results.append({
+                            "query_text": obj["query_text"],
+                            "result_count": obj["result_count"],
+                            "created_at": obj["created_at"],
+                            "sql_id": obj["sql_id"],
+                            "execution_time": obj.get("execution_time"),
+                            "relevance_score": certainty
+                        })
+                
+                # Sort by relevance score and limit results
+                processed_results.sort(key=lambda x: x["relevance_score"], reverse=True)
+                return processed_results[:limit]
+            
+            if self.debug:
+                print("[DEBUG] No similar queries found")
             return []
         except Exception as e:
-            print(f"Error finding similar queries: {e}")
+            print(f"[ERROR] Error finding similar queries: {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
     def get_query_suggestions(self, partial_query: str, limit: int = 5) -> List[Dict]:
         """Get query suggestions based on partial input"""
         try:
+            if self.debug:
+                print(f"\n[DEBUG] Getting suggestions for partial query: {partial_query}")
+            
             # Convert partial query to lowercase for case-insensitive matching
             partial_lower = partial_query.lower()
             
-            # First get all queries
+            # Use vector search to find semantically similar queries
+            query_vector = self._get_embeddings(partial_lower)
+            
             result = (
                 self.client.query
                 .get(self.query_class, [
@@ -465,30 +544,66 @@ class WeaviateRAGService:
                     "sql_id",
                     "execution_time"
                 ])
+                .with_additional(["id", "certainty"])
+                .with_near_vector({
+                    "vector": query_vector,
+                    "certainty": 0.5  # Lower threshold for suggestions
+                })
+                .with_limit(limit * 3)  # Get more results to filter
                 .do()
             )
 
             if result and "data" in result and "Get" in result["data"]:
                 objects = result["data"]["Get"][self.query_class]
+                if self.debug:
+                    print(f"[DEBUG] Found {len(objects)} potential suggestions")
                 
-                # Filter and sort matches manually
+                # Process and filter matches
                 matches = []
-                for obj in objects:
-                    query_text = obj["query_text"].lower()
-                    if query_text.startswith(partial_lower):
-                        matches.append({
-                            "query_text": obj["query_text"],  # Keep original case
-                            "result_count": obj["result_count"],
-                            "created_at": obj["created_at"],
-                            "sql_id": obj["sql_id"],
-                            "execution_time": obj.get("execution_time")
-                        })
+                seen_queries = set()  # To avoid duplicates
                 
-                # Sort by length (shorter matches first) and limit results
-                matches.sort(key=lambda x: len(x["query_text"]))
+                for obj in objects:
+                    query_text = obj["query_text"]
+                    query_lower = query_text.lower()
+                    
+                    # Check if this query starts with the partial input
+                    # or contains all words from the partial input
+                    partial_words = set(partial_lower.split())
+                    query_words = set(query_lower.split())
+                    
+                    if (query_lower.startswith(partial_lower) or 
+                        partial_words.issubset(query_words)):
+                        
+                        # Avoid duplicates
+                        if query_lower not in seen_queries:
+                            seen_queries.add(query_lower)
+                            matches.append({
+                                "query_text": query_text,  # Keep original case
+                                "result_count": obj["result_count"],
+                                "created_at": obj["created_at"],
+                                "sql_id": obj["sql_id"],
+                                "execution_time": obj.get("execution_time")
+                            })
+                
+                # Sort suggestions:
+                # 1. Exact prefix matches first
+                # 2. Then by length (shorter matches first)
+                # 3. Then by result count (more results first)
+                matches.sort(key=lambda x: (
+                    not x["query_text"].lower().startswith(partial_lower),
+                    len(x["query_text"]),
+                    -x["result_count"]
+                ))
+                
+                if self.debug:
+                    print(f"[DEBUG] Returning {min(len(matches), limit)} suggestions")
                 return matches[:limit]
             
+            if self.debug:
+                print("[DEBUG] No suggestions found")
             return []
         except Exception as e:
-            print(f"Error getting query suggestions: {e}")
+            print(f"[ERROR] Error getting query suggestions: {e}")
+            import traceback
+            traceback.print_exc()
             return [] 

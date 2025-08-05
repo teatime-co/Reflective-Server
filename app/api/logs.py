@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime
 import re
@@ -13,7 +13,10 @@ from app.models.models import Log, Tag, Query as QueryModel, QueryResult as Quer
 from app.services.weaviate_rag_service import WeaviateRAGService
 from app.schemas.log import LogCreate, LogResponse, LogUpdate, Tag as TagSchema
 from app.schemas.query import SearchResult, QueryWithScore
-from app.utils.uuid_helpers import format_uuid_from_weaviate
+from app.utils.uuid_utils import format_uuid_from_weaviate
+from app.api.auth import get_current_user
+from app.schemas.user import UserResponse
+from app.api.tags import get_or_create_tag
 
 router = APIRouter()
 rag_service = WeaviateRAGService() # pass False to run cloud service instead
@@ -26,32 +29,12 @@ def extract_tags(content: str) -> List[str]:
     tags = re.findall(r'#([\w\d_-]+)', escaped_content)
     return list(set(tags))
 
-@router.get("/tags", response_model=List[TagSchema])
-async def get_tags(db: Session = Depends(get_db)):
-    """Get all tags"""
-    tags = db.query(Tag).order_by(Tag.name).all()
-    return tags
-
-@router.post("/tags", response_model=TagSchema)
-async def create_tag(tag: TagSchema, db: Session = Depends(get_db)):
-    """Create a new tag"""
-    existing_tag = db.query(Tag).filter(Tag.name == tag.name).first()
-    if existing_tag:
-        return existing_tag
-        
-    new_tag = Tag(
-        id=tag.id,
-        name=tag.name,
-        color=tag.color,
-        created_at=tag.created_at
-    )
-    db.add(new_tag)
-    db.commit()
-    db.refresh(new_tag)
-    return new_tag
-
-@router.post("/logs/", response_model=LogResponse)
-async def create_log(log_data: LogCreate, db: Session = Depends(get_db)):
+@router.post("/logs/", response_model=LogResponse, status_code=status.HTTP_201_CREATED)
+async def create_log(
+    log_data: LogCreate,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """Create a new log entry"""
     print(f"[DEBUG] Received create_log request with data: {log_data}")
     
@@ -62,9 +45,10 @@ async def create_log(log_data: LogCreate, db: Session = Depends(get_db)):
         print("[ERROR] Failed to create log in vector database")
         raise HTTPException(status_code=500, detail="Failed to create log in vector database")
     
-    # Create log in SQL database with client-provided ID
+    # Create log in SQL database with client-provided ID and user_id
     new_log = Log(
         id=log_data.id,
+        user_id=current_user.id,  # Add user_id from authenticated user
         weaviate_id=weaviate_id,
         content=log_data.content,
         word_count=len(log_data.content.split()),
@@ -76,8 +60,12 @@ async def create_log(log_data: LogCreate, db: Session = Depends(get_db)):
         
         # Process tags from request
         for tag_name in log_data.tags:
-            tag = Tag.get_or_create(db, tag_name)
-            new_log.tags.append(tag)
+            try:
+                tag = await get_or_create_tag(tag_name, current_user, db)
+                new_log.tags.append(tag)
+            except Exception as tag_error:
+                print(f"[ERROR] Failed to create/get tag {tag_name}: {str(tag_error)}")
+                raise HTTPException(status_code=500, detail=f"Failed to process tag {tag_name}: {str(tag_error)}")
         
         db.commit()
         db.refresh(new_log)
@@ -86,37 +74,61 @@ async def create_log(log_data: LogCreate, db: Session = Depends(get_db)):
         # If SQL insertion fails, cleanup Weaviate entry
         rag_service.delete_log(weaviate_id)
         db.rollback()
+        print(f"[ERROR] Failed to create log: {str(e)}")
+        print("Traceback:")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/logs/", response_model=List[LogResponse])
+@router.get("/logs/", response_model=List[LogResponse], status_code=status.HTTP_200_OK)
 async def get_logs(
     skip: int = 0,
     limit: int = 100,
     tag: Optional[str] = None,
+    current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get logs with optional filtering"""
+    query = db.query(Log).filter(Log.user_id == current_user.id)  # Filter by user_id
+    
     if tag:
-        # Use Weaviate for tag-based search
-        weaviate_results = rag_service.get_logs_by_tag(tag, limit)
-        weaviate_ids = [result["id"] for result in weaviate_results]
-        return db.query(Log).filter(Log.weaviate_id.in_(weaviate_ids)).all()
+        print(f"Searching for tag: {tag}")
+        # Get tag from database
+        db_tag = Tag.get_or_create(db, tag)
+        
+        # Get logs that have this tag
+        logs = query.filter(Log.tags.any(Tag.id == db_tag.id)).all()
+        return logs
     
     # Regular pagination without search
-    return db.query(Log).order_by(Log.created_at.desc()).offset(skip).limit(limit).all()
+    return query.order_by(Log.created_at.desc()).offset(skip).limit(limit).all()
 
-@router.get("/logs/{log_id}", response_model=LogResponse)
-async def get_log(log_id: str, db: Session = Depends(get_db)):
+@router.get("/logs/{log_id}", response_model=LogResponse, status_code=status.HTTP_200_OK)
+async def get_log(
+    log_id: str,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """Get a specific log by ID"""
-    log = db.query(Log).filter(Log.id == log_id).first()
+    log = db.query(Log).filter(
+        Log.id == log_id,
+        Log.user_id == current_user.id  # Ensure user owns the log
+    ).first()
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
     return log
 
-@router.put("/logs/{log_id}", response_model=LogResponse)
-async def update_log(log_id: str, log_data: LogUpdate, db: Session = Depends(get_db)):
+@router.put("/logs/{log_id}", response_model=LogResponse, status_code=status.HTTP_200_OK)
+async def update_log(
+    log_id: str,
+    log_data: LogUpdate,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """Update a log entry"""
-    log = db.query(Log).filter(Log.id == log_id).first()
+    log = db.query(Log).filter(
+        Log.id == log_id,
+        Log.user_id == current_user.id  # Ensure user owns the log
+    ).first()
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
     
@@ -144,18 +156,36 @@ async def update_log(log_id: str, log_data: LogUpdate, db: Session = Depends(get
         # Add new tags
         for tag_name in new_tag_names:
             if tag_name not in current_tags:
-                tag = Tag.get_or_create(db, tag_name)
-                log.tags.append(tag)
+                try:
+                    tag = await get_or_create_tag(tag_name, current_user, db)
+                    log.tags.append(tag)
+                except Exception as tag_error:
+                    print(f"[ERROR] Failed to create/get tag {tag_name}: {str(tag_error)}")
+                    raise HTTPException(status_code=500, detail=f"Failed to process tag {tag_name}: {str(tag_error)}")
         
-        db.commit()
-        db.refresh(log)
+        try:
+            db.commit()
+            db.refresh(log)
+        except Exception as e:
+            print(f"[ERROR] Failed to update log: {str(e)}")
+            print("Traceback:")
+            traceback.print_exc()
+            db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
     
     return log
 
-@router.delete("/logs/{log_id}")
-async def delete_log(log_id: str, db: Session = Depends(get_db)):
+@router.delete("/logs/{log_id}", status_code=status.HTTP_200_OK)
+async def delete_log(
+    log_id: str,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """Delete a log entry"""
-    log = db.query(Log).filter(Log.id == log_id).first()
+    log = db.query(Log).filter(
+        Log.id == log_id,
+        Log.user_id == current_user.id  # Ensure user owns the log
+    ).first()
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
     
@@ -169,19 +199,21 @@ async def delete_log(log_id: str, db: Session = Depends(get_db)):
     
     return {"message": "Log deleted successfully"}
 
-@router.post("/search", response_model=List[SearchResult])
+@router.post("/search", response_model=List[SearchResult], status_code=status.HTTP_200_OK)
 async def semantic_search(
     query: str = Query(..., min_length=1),
     top_k: int = Query(default=5, ge=1, le=20),
+    current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Perform semantic search on logs and return full log details with search metadata"""
     start_time = time.time()
     
     try:
-        # Create query record
+        # Create query record with user_id
         print(f"[DEBUG] Creating query record for: {query}")
         query_record = QueryModel(
+            user_id=current_user.id,  # Add user_id
             query_text=query,
             created_at=datetime.utcnow()
         )
@@ -194,10 +226,18 @@ async def semantic_search(
         if search_results:
             print(f"[DEBUG] First result structure: {search_results[0]}")
         
-        # Get the corresponding logs from SQL database
+        # Get the corresponding logs from SQL database (filtered by user_id)
         weaviate_ids = [result["id"] for result in search_results]
         print(f"[DEBUG] Looking up logs with Weaviate IDs: {weaviate_ids}")
-        logs = db.query(Log).filter(Log.weaviate_id.in_(weaviate_ids)).all()
+        logs = db.query(Log).options(
+            joinedload(Log.tags),
+            joinedload(Log.themes),
+            joinedload(Log.linguistic_metrics),
+            joinedload(Log.revisions)
+        ).filter(
+            Log.weaviate_id.in_(weaviate_ids),
+            Log.user_id == current_user.id  # Filter by user_id
+        ).all()
         print(f"[DEBUG] Found {len(logs)} matching logs in SQL database")
         log_map = {log.weaviate_id: log for log in logs}
         
@@ -246,6 +286,45 @@ async def semantic_search(
                     } for tag in log.tags
                 ]
                 
+                # Add themes from relationship
+                log_dict['themes'] = [
+                    {
+                        "id": theme.id,
+                        "name": theme.name,
+                        "description": theme.description,
+                        "confidence_threshold": theme.confidence_threshold,
+                        "confidence_score": theme.confidence_score,
+                        "detected_at": theme.detected_at,
+                        "created_at": theme.created_at
+                    } for theme in log.themes
+                ] if log.themes else []
+                
+                # Add linguistic metrics from relationship
+                metrics = log.linguistic_metrics
+                log_dict['linguistic_metrics'] = {
+                    "id": metrics.id,
+                    "log_id": metrics.log_id,
+                    "vocabulary_diversity_score": metrics.vocabulary_diversity_score,
+                    "sentiment_score": metrics.sentiment_score,
+                    "complexity_score": metrics.complexity_score,
+                    "readability_level": metrics.readability_level,
+                    "emotion_scores": metrics.emotion_scores,
+                    "writing_style_metrics": metrics.writing_style_metrics,
+                    "processed_at": metrics.processed_at
+                } if metrics else None
+                
+                # Add revisions from relationship
+                log_dict['revisions'] = [
+                    {
+                        "id": rev.id,
+                        "log_id": rev.log_id,
+                        "revision_number": rev.revision_number,
+                        "content_delta": rev.content_delta,
+                        "revision_type": rev.revision_type,
+                        "created_at": rev.created_at
+                    } for rev in log.revisions
+                ] if log.revisions else []
+                
                 response_obj = SearchResult(
                     **log_dict,
                     **search_metadata
@@ -289,26 +368,31 @@ async def semantic_search(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}\n{traceback.format_exc()}")
 
-@router.get("/search/similar", response_model=List[QueryWithScore])
+@router.get("/search/similar", response_model=List[QueryWithScore], status_code=status.HTTP_200_OK)
 async def get_similar_queries(
     query: str = Query(..., min_length=1),
     limit: int = Query(default=5, ge=1, le=20),
     min_certainty: float = Query(default=0.7, ge=0.0, le=1.0),
+    current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get similar previous queries"""
     try:
         similar_queries = rag_service.get_similar_queries(query, limit, min_certainty)
         
-        # Convert to response format
+        # Convert to response format and filter by user_id
         return [
             QueryWithScore(
-                id=q["sql_id"],  # Just use the string UUID directly
+                id=q["sql_id"],
                 query_text=q["query_text"],
                 created_at=q["created_at"],
                 result_count=q["result_count"],
                 relevance_score=q["relevance_score"]
             ) for q in similar_queries
+            if db.query(QueryModel).filter(
+                QueryModel.id == q["sql_id"],
+                QueryModel.user_id == current_user.id
+            ).first()
         ]
     except ValueError as e:
         print(f"[ERROR] Failed to convert UUID: {e}")
@@ -317,24 +401,29 @@ async def get_similar_queries(
         print(f"[ERROR] Failed to get similar queries: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get similar queries: {str(e)}")
 
-@router.get("/search/suggest", response_model=List[QueryWithScore])
+@router.get("/search/suggest", response_model=List[QueryWithScore], status_code=status.HTTP_200_OK)
 async def get_query_suggestions(
     partial_query: str = Query(..., min_length=1),
     limit: int = Query(default=5, ge=1, le=20),
+    current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get query suggestions based on partial input"""
     try:
         suggestions = rag_service.get_query_suggestions(partial_query, limit)
         
-        # Convert to response format
+        # Convert to response format and filter by user_id
         return [
             QueryWithScore(
-                id=q["sql_id"],  # Just use the string UUID directly
+                id=q["sql_id"],
                 query_text=q["query_text"],
                 created_at=q["created_at"],
                 result_count=q["result_count"]
             ) for q in suggestions
+            if db.query(QueryModel).filter(
+                QueryModel.id == q["sql_id"],
+                QueryModel.user_id == current_user.id
+            ).first()
         ]
     except ValueError as e:
         print(f"[ERROR] Failed to convert UUID: {e}")
