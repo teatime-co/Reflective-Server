@@ -13,7 +13,7 @@ from app.models.models import Log, Tag, Query as QueryModel, QueryResult as Quer
 from app.services.weaviate_rag_service import WeaviateRAGService
 from app.schemas.log import LogCreate, LogResponse, LogUpdate, Tag as TagSchema
 from app.schemas.query import SearchResult, QueryWithScore
-from app.utils.uuid_utils import format_uuid_from_weaviate
+from app.utils.uuid_utils import format_uuid_from_weaviate, format_uuid_for_weaviate
 from app.api.auth import get_current_user
 from app.schemas.user import UserResponse
 from app.api.tags import get_or_create_tag
@@ -52,7 +52,13 @@ async def create_log(
         weaviate_id=weaviate_id,
         content=log_data.content,
         word_count=len(log_data.content.split()),
-        processing_status="processed"
+        processing_status="processed",
+        mood_score=getattr(log_data, 'mood_score', None),
+        completion_status=getattr(log_data, 'completion_status', 'draft'),
+        target_word_count=getattr(log_data, 'target_word_count', 750),
+        writing_duration=getattr(log_data, 'writing_duration', None),
+        session_id=getattr(log_data, 'session_id', None),
+        prompt_id=getattr(log_data, 'prompt_id', None)
     )
     
     try:
@@ -132,46 +138,67 @@ async def update_log(
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
     
-    # Update content if changed
-    if log_data.content != log.content:
-        # Extract new tags
-        new_tag_names = extract_tags(log_data.content)
-        
-        # Update in Weaviate
-        if not rag_service.update_log(log.weaviate_id, log_data.content, new_tag_names):
-            raise HTTPException(status_code=500, detail="Failed to update log in vector database")
-        
-        # Update in SQL database
-        log.content = log_data.content
-        log.word_count = len(log_data.content.split())
-        log.processing_status = "processed"
-        log.updated_at = datetime.utcnow()
-        
-        # Update tags
-        current_tags = {tag.name: tag for tag in log.tags}
-        
-        # Remove tags that are no longer present
-        log.tags = [tag for tag in log.tags if tag.name in new_tag_names]
-        
-        # Add new tags
-        for tag_name in new_tag_names:
-            if tag_name not in current_tags:
-                try:
-                    tag = await get_or_create_tag(tag_name, current_user, db)
-                    log.tags.append(tag)
-                except Exception as tag_error:
-                    print(f"[ERROR] Failed to create/get tag {tag_name}: {str(tag_error)}")
-                    raise HTTPException(status_code=500, detail=f"Failed to process tag {tag_name}: {str(tag_error)}")
-        
+    # Determine which tags to use: explicit tags from client, or extracted from content
+    tag_names = log_data.tags if log_data.tags else extract_tags(log_data.content)
+    
+    # Update in Weaviate if content changed or if we have a valid weaviate_id
+    weaviate_updated = False
+    if log.weaviate_id and log_data.content != log.content:
         try:
-            db.commit()
-            db.refresh(log)
+            # Format the weaviate_id properly (remove hyphens)
+            formatted_weaviate_id = format_uuid_for_weaviate(log.weaviate_id)
+            weaviate_updated = rag_service.update_log(formatted_weaviate_id, log_data.content, tag_names)
+            
+            if not weaviate_updated:
+                print(f"[WARN] Failed to update Weaviate entry {log.weaviate_id}, but continuing with SQL update")
         except Exception as e:
-            print(f"[ERROR] Failed to update log: {str(e)}")
-            print("Traceback:")
-            traceback.print_exc()
-            db.rollback()
-            raise HTTPException(status_code=500, detail=str(e))
+            print(f"[WARN] Weaviate update failed for log {log_id}: {e}, but continuing with SQL update")
+    
+    # Update all fields in SQL database
+    log.content = log_data.content
+    log.word_count = len(log_data.content.split())
+    log.processing_status = "processed"
+    log.updated_at = datetime.utcnow()
+    
+    # Update LogBase fields from LogUpdate
+    if hasattr(log_data, 'mood_score') and log_data.mood_score is not None:
+        log.mood_score = log_data.mood_score
+    if hasattr(log_data, 'completion_status') and log_data.completion_status is not None:
+        log.completion_status = log_data.completion_status
+    if hasattr(log_data, 'target_word_count') and log_data.target_word_count is not None:
+        log.target_word_count = log_data.target_word_count
+    if hasattr(log_data, 'writing_duration') and log_data.writing_duration is not None:
+        log.writing_duration = log_data.writing_duration
+    if hasattr(log_data, 'session_id') and log_data.session_id is not None:
+        log.session_id = log_data.session_id
+    if hasattr(log_data, 'prompt_id') and log_data.prompt_id is not None:
+        log.prompt_id = log_data.prompt_id
+    
+    # Update tags
+    current_tags = {tag.name: tag for tag in log.tags}
+    
+    # Remove tags that are no longer present
+    log.tags = [tag for tag in log.tags if tag.name in tag_names]
+    
+    # Add new tags
+    for tag_name in tag_names:
+        if tag_name not in current_tags:
+            try:
+                tag = await get_or_create_tag(tag_name, current_user, db)
+                log.tags.append(tag)
+            except Exception as tag_error:
+                print(f"[ERROR] Failed to create/get tag {tag_name}: {str(tag_error)}")
+                raise HTTPException(status_code=500, detail=f"Failed to process tag {tag_name}: {str(tag_error)}")
+    
+    try:
+        db.commit()
+        db.refresh(log)
+    except Exception as e:
+        print(f"[ERROR] Failed to update log: {str(e)}")
+        print("Traceback:")
+        traceback.print_exc()
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     
     return log
 

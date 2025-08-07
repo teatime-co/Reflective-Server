@@ -7,12 +7,6 @@ class ThemeBase(BaseModel):
     description: Optional[str] = None
     confidence_threshold: float = Field(default=0.7, ge=0.0, le=1.0)
 
-class ThemeCreate(ThemeBase):
-    pass
-
-class ThemeUpdate(ThemeBase):
-    pass
-
 class Theme(ThemeBase):
     id: UUID4
     created_at: datetime

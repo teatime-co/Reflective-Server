@@ -82,6 +82,48 @@ class ThemeService:
         # Sort by confidence score
         theme_matches.sort(key=lambda x: x["confidence_score"], reverse=True)
         return theme_matches
+
+    def _create_theme_automatically(self, db: Session, user_id: str, name: str, description: Optional[str] = None) -> Theme:
+        """
+        Automatically create a new theme during detection process
+        
+        Args:
+            db: Database session
+            user_id: ID of the user
+            name: Theme name
+            description: Optional theme description
+            
+        Returns:
+            Created Theme instance
+        """
+        # Check if theme already exists for this user
+        existing_theme = db.query(Theme).filter_by(
+            user_id=user_id,
+            name=name
+        ).first()
+
+        if existing_theme:
+            return existing_theme
+
+        # Create new theme (automatically detected, not custom)
+        theme = Theme(
+            user_id=user_id,
+            name=name,
+            description=description,
+        )
+        
+        try:
+            db.add(theme)
+            db.commit()
+            db.refresh(theme)
+            return theme
+        except IntegrityError:
+            db.rollback()
+            # In case of race condition, try to fetch the theme again
+            return db.query(Theme).filter_by(
+                user_id=user_id,
+                name=name
+            ).first()
         
     def process_log(self, db: Session, log: Log) -> List[Dict]:
         """
@@ -98,10 +140,24 @@ class ThemeService:
             return []
             
         # Get all available themes for the user
-        themes = db.query(Theme).filter_by(user_id=log.user_id).all()
+        existing_themes = db.query(Theme).filter_by(user_id=log.user_id).all()
         
-        # Detect themes
-        theme_matches = self.detect_themes(log.content, themes)
+        # First, try to detect themes from existing themes
+        theme_matches = self.detect_themes(log.content, existing_themes)
+        
+        # If no strong matches found, generate new themes from content
+        if not theme_matches or max(match["confidence_score"] for match in theme_matches) < 0.35:
+            new_theme_suggestions = self.get_theme_suggestions(db, log.content, log.user_id, max_suggestions=3)
+            
+            # Create new themes automatically
+            for suggestion in new_theme_suggestions:
+                new_theme = self._create_theme_automatically(db, log.user_id, suggestion)
+                if new_theme:
+                    # Add to matches with high confidence since it was generated from this content
+                    theme_matches.append({
+                        "theme": new_theme,
+                        "confidence_score": 0.35  # High confidence for newly generated themes
+                    })
         
         # Update theme associations
         self._update_theme_associations(db, log, theme_matches)
@@ -129,57 +185,10 @@ class ThemeService:
             )
         
         db.commit()
-        
-    def create_theme(self, db: Session, user_id: str, name: str, description: Optional[str] = None) -> Theme:
-        """
-        Create a new theme for a user or update existing one
-        
-        Args:
-            db: Database session
-            user_id: ID of the user creating the theme
-            name: Theme name
-            description: Optional theme description
-            
-        Returns:
-            Created or updated Theme instance
-        """
-        # Check if theme already exists for this user
-        existing_theme = db.query(Theme).filter_by(
-            user_id=user_id,
-            name=name
-        ).first()
-
-        if existing_theme:
-            # Update description if provided and different
-            if description is not None and existing_theme.description != description:
-                existing_theme.description = description
-                db.commit()
-                db.refresh(existing_theme)
-            return existing_theme
-
-        # Create new theme
-        theme = Theme(
-            user_id=user_id,
-            name=name,
-            description=description
-        )
-        
-        try:
-            db.add(theme)
-            db.commit()
-            db.refresh(theme)
-            return theme
-        except IntegrityError:
-            db.rollback()
-            # In case of race condition, try to fetch the theme again
-            return db.query(Theme).filter_by(
-                user_id=user_id,
-                name=name
-            ).first()
 
     def get_user_themes(self, db: Session, user_id: str) -> List[Theme]:
         """
-        Get all themes for a user
+        Get all automatically detected themes for a user
         
         Args:
             db: Database session

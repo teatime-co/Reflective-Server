@@ -6,8 +6,6 @@ from app.services.theme_service import theme_service
 from app.api.auth import get_current_user
 from app.models.models import User, Theme, Log
 from app.schemas.themes import (
-    ThemeCreate, 
-    ThemeUpdate, 
     ThemeResponse, 
     ThemeWithLogsResponse,
     ThemeMatch,
@@ -22,53 +20,12 @@ router = APIRouter(
     responses={404: {"description": "Not found"}}
 )
 
-@router.post("", response_model=ThemeResponse, status_code=status.HTTP_201_CREATED)
-def create_theme(
-    theme_data: ThemeCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Create a new theme for the current user.
-    If theme already exists, update its description if provided.
-    """
-    # Check if theme already exists before creating
-    existing_theme = db.query(Theme).filter_by(
-        user_id=str(current_user.id),
-        name=theme_data.name
-    ).first()
-    
-    theme = theme_service.create_theme(
-        db, 
-        str(current_user.id), 
-        theme_data.name, 
-        theme_data.description
-    )
-    
-    # If theme already existed, return 200 instead of 201
-    if existing_theme:
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={
-                "message": "Theme already exists",
-                "theme": {
-                    "id": str(theme.id),
-                    "user_id": str(theme.user_id),
-                    "name": theme.name,
-                    "description": theme.description,
-                    "created_at": theme.created_at.isoformat()
-                }
-            }
-        )
-    
-    return theme
-
 @router.get("", response_model=List[ThemeResponse])
 def get_themes(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all themes for the current user"""
+    """Get all automatically detected themes for the current user"""
     return theme_service.get_user_themes(db, str(current_user.id))
 
 @router.post("/detect/{log_id}", response_model=List[ThemeMatch])

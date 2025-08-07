@@ -74,7 +74,10 @@ class LogCreate(LogBase):
     prompt_id: Optional[UUID4] = None
 
 class LogUpdate(LogBase):
-    pass
+    id: UUID4  # Required for updates
+    tags: List[str] = []  # List of tag names
+    session_id: Optional[UUID4] = None
+    prompt_id: Optional[UUID4] = None
 
 class LogResponse(LogBase):
     id: UUID4

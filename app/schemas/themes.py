@@ -6,12 +6,6 @@ class ThemeBase(BaseModel):
     name: str
     description: Optional[str] = None
 
-class ThemeCreate(ThemeBase):
-    pass
-
-class ThemeUpdate(ThemeBase):
-    name: Optional[str] = None
-
 class ThemeResponse(ThemeBase):
     id: UUID4
     user_id: UUID4

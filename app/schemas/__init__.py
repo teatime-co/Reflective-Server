@@ -1,8 +1,6 @@
 from .sessions import SessionCreate, SessionResponse
 from .themes import (
     ThemeBase, 
-    ThemeCreate, 
-    ThemeUpdate, 
     ThemeResponse, 
     ThemeWithLogsResponse,
     ThemeMatch,
@@ -30,8 +28,6 @@ __all__ = [
     'SessionCreate',
     'SessionResponse',
     'ThemeBase',
-    'ThemeCreate',
-    'ThemeUpdate',
     'ThemeResponse',
     'ThemeWithLogsResponse',
     'ThemeMatch',
