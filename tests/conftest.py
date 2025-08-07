@@ -139,11 +139,8 @@ def setup_test_database():
     reset_postgres_db()
     reset_weaviate()
     yield
-    # Cleanup after all tests
-    print("\n🧹 Cleaning up test environment...")
-    reset_postgres_db()
-    reset_weaviate()
-    print("✅ Test cleanup complete")
+    # Database will not be cleaned up after tests
+    print("\n✨ Test data preserved in database")
 
 @pytest.fixture(autouse=True)
 def cleanup_after_test(db):
