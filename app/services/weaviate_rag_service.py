@@ -100,7 +100,7 @@ class WeaviateRAGService:
             raise Exception(f"Failed to get embeddings: {response.text}")
 
     def _ensure_schema(self):
-        """Ensure the required schema exists in Weaviate"""
+        """Ensure the required schema exists in Weaviate without unnecessary deletion"""
         # Log schema
         log_schema = {
             "class": self.log_class,
@@ -160,7 +160,7 @@ class WeaviateRAGService:
             ]
         }
 
-        # Check and create schemas
+        # Check and create schemas only if they don't exist
         for schema in [log_schema, query_schema]:
             class_name = schema["class"]
             try:
@@ -168,12 +168,23 @@ class WeaviateRAGService:
                 # Try to get the schema first
                 try:
                     existing_schema = self.client.schema.get(class_name)
-                    print(f"[DEBUG] Schema exists for {class_name}")
+                    print(f"[DEBUG] Schema already exists for {class_name}")
                     if self.debug:
                         print(f"[DEBUG] Existing schema: {existing_schema}")
-                    # Delete existing schema if it exists
-                    print(f"[DEBUG] Deleting existing schema for {class_name}")
-                    self.client.schema.delete_class(class_name)
+                    
+                    # Validate that existing schema has required properties
+                    existing_props = {prop['name'] for prop in existing_schema.get('properties', [])}
+                    required_props = {prop['name'] for prop in schema['properties']}
+                    
+                    if required_props.issubset(existing_props):
+                        print(f"[DEBUG] Schema for {class_name} is valid, skipping recreation")
+                        continue
+                    else:
+                        print(f"[DEBUG] Schema for {class_name} is missing properties, will recreate")
+                        print(f"[DEBUG] Missing: {required_props - existing_props}")
+                        # Delete and recreate if schema is incomplete
+                        self.client.schema.delete_class(class_name)
+                        
                 except weaviate.exceptions.UnexpectedStatusCodeException:
                     print(f"[DEBUG] No existing schema found for {class_name}")
                 
@@ -344,7 +355,7 @@ class WeaviateRAGService:
             import traceback
             traceback.print_exc()
             return []
-
+    
     def update_log(self, log_id: str, content: str, tags: List[str] = None) -> bool:
         """Update a log entry in Weaviate"""
         # Get new embeddings from Ollama
@@ -432,8 +443,111 @@ class WeaviateRAGService:
                 results.append(result)
         return results 
 
-    def add_query(self, query_text: str, sql_id: str, result_count: int, execution_time: float) -> str:
-        """Add a query to Weaviate with its embedding"""
+    def find_existing_query(self, query_text: str) -> Optional[Dict]:
+        """Find an existing query with the exact same text"""
+        try:
+            if self.debug:
+                print(f"\n[DEBUG] Checking for existing query: {query_text}")
+            
+            result = (
+                self.client.query
+                .get(self.query_class, [
+                    "query_text",
+                    "created_at",
+                    "result_count",
+                    "execution_time",
+                    "sql_id"
+                ])
+                .with_additional(["id"])
+                .with_where({
+                    "path": ["query_text"],
+                    "operator": "Equal",
+                    "valueText": query_text
+                })
+                .with_limit(1)
+                .do()
+            )
+
+            if result and "data" in result and "Get" in result["data"]:
+                objects = result["data"]["Get"].get(self.query_class, [])
+                if objects:
+                    existing_query = objects[0]
+                    if self.debug:
+                        print(f"[DEBUG] Found existing query with ID: {existing_query['_additional']['id']}")
+                        print(f"[DEBUG] SQL ID: {existing_query.get('sql_id')}")
+                    return {
+                        "weaviate_id": existing_query["_additional"]["id"],
+                        "query_text": existing_query["query_text"],
+                        "created_at": existing_query["created_at"],
+                        "result_count": existing_query["result_count"],
+                        "execution_time": existing_query.get("execution_time"),
+                        "sql_id": existing_query["sql_id"]
+                    }
+            
+            if self.debug:
+                print("[DEBUG] No existing query found")
+            return None
+            
+        except Exception as e:
+            print(f"[ERROR] Error finding existing query: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def update_query_metadata(self, weaviate_id: str, result_count: int, execution_time: float) -> bool:
+        """Update metadata for an existing query"""
+        try:
+            if self.debug:
+                print(f"[DEBUG] Updating query metadata for Weaviate ID: {weaviate_id}")
+                print(f"[DEBUG] New result count: {result_count}, execution time: {execution_time}")
+            
+            # Get current query data
+            current_data = self.client.data_object.get_by_id(
+                weaviate_id, 
+                class_name=self.query_class,
+                with_vector=False
+            )
+            
+            if not current_data:
+                print(f"[ERROR] Query with ID {weaviate_id} not found")
+                return False
+            
+            # Update with new metadata while preserving other fields
+            updated_data = {
+                "query_text": current_data["properties"]["query_text"],
+                "created_at": current_data["properties"]["created_at"],
+                "sql_id": current_data["properties"]["sql_id"],
+                "result_count": result_count,
+                "execution_time": execution_time
+            }
+            
+            # Get current vector to preserve it
+            vector = self._get_embeddings(current_data["properties"]["query_text"])
+            
+            self.client.data_object.update(
+                uuid=weaviate_id,
+                data_object=updated_data,
+                class_name=self.query_class,
+                vector=vector
+            )
+            
+            if self.debug:
+                print(f"[DEBUG] Successfully updated query metadata")
+            return True
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to update query metadata: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def add_query(self, query_text: str, sql_id: str, result_count: int, execution_time: float, update_if_exists: bool = True) -> str:
+        """Add a query to Weaviate with its embedding (always create new, no duplicate checking)"""
+        
+        # Always create new query entry
+        if self.debug:
+            print(f"[DEBUG] Creating new query entry for: {query_text}")
+        
         vector = self._get_embeddings(query_text)
         
         # Format datetime in RFC3339 format without microseconds
@@ -459,6 +573,8 @@ class WeaviateRAGService:
                 class_name=self.query_class,
                 vector=vector
             )
+            if self.debug:
+                print(f"[DEBUG] Successfully created new query with Weaviate ID: {result}")
             return result
         except Exception as e:
             print(f"[ERROR] Failed to add query to Weaviate: {e}")

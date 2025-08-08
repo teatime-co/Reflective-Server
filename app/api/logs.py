@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import and_
 from typing import List, Optional
 from datetime import datetime
 import re
@@ -9,7 +10,7 @@ import traceback
 import sys
 
 from app.database import get_db
-from app.models.models import Log, Tag, Query as QueryModel, QueryResult as QueryResultModel
+from app.models.models import Log, Tag, Query as QueryModel, QueryResult as QueryResultModel, log_theme_association
 from app.services.weaviate_rag_service import WeaviateRAGService
 from app.schemas.log import LogCreate, LogResponse, LogUpdate, Tag as TagSchema
 from app.schemas.query import SearchResult, QueryWithScore
@@ -17,6 +18,7 @@ from app.utils.uuid_utils import format_uuid_from_weaviate, format_uuid_for_weav
 from app.api.auth import get_current_user
 from app.schemas.user import UserResponse
 from app.api.tags import get_or_create_tag
+from app.schemas.query import SearchRequest
 
 router = APIRouter()
 rag_service = WeaviateRAGService() # pass False to run cloud service instead
@@ -226,10 +228,9 @@ async def delete_log(
     
     return {"message": "Log deleted successfully"}
 
-@router.post("/search", response_model=List[SearchResult], status_code=status.HTTP_200_OK)
+@router.post("/logs/search", response_model=List[SearchResult], status_code=status.HTTP_200_OK)
 async def semantic_search(
-    query: str = Query(..., min_length=1),
-    top_k: int = Query(default=5, ge=1, le=20),
+    request: SearchRequest,
     current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -237,10 +238,14 @@ async def semantic_search(
     start_time = time.time()
     
     try:
-        # Create query record with user_id
-        print(f"[DEBUG] Creating query record for: {query}")
+        # Extract values from request body
+        query = request.query
+        top_k = request.top_k
+        
+        # Create new query record with user_id (always create new, no duplicate checking)
+        print(f"[DEBUG] Creating new query record for: {query}")
         query_record = QueryModel(
-            user_id=current_user.id,  # Add user_id
+            user_id=current_user.id,
             query_text=query,
             created_at=datetime.utcnow()
         )
@@ -313,18 +318,44 @@ async def semantic_search(
                     } for tag in log.tags
                 ]
                 
-                # Add themes from relationship
-                log_dict['themes'] = [
-                    {
-                        "id": theme.id,
-                        "name": theme.name,
-                        "description": theme.description,
-                        "confidence_threshold": theme.confidence_threshold,
-                        "confidence_score": theme.confidence_score,
-                        "detected_at": theme.detected_at,
-                        "created_at": theme.created_at
-                    } for theme in log.themes
-                ] if log.themes else []
+                # Add themes from relationship with association data
+                theme_data = []
+                if log.themes:
+                    # Get theme association data (confidence_score, detected_at)
+                    theme_associations = db.query(log_theme_association).filter(
+                        log_theme_association.c.log_id == log.id
+                    ).all()
+                    
+                    # Create a mapping of theme_id to association data
+                    association_map = {
+                        assoc.theme_id: {
+                            "confidence_score": assoc.confidence_score,
+                            "detected_at": assoc.detected_at
+                        } for assoc in theme_associations
+                    }
+                    
+                    # Build theme data with association info
+                    for theme in log.themes:
+                        theme_info = {
+                            "id": theme.id,
+                            "name": theme.name,
+                            "description": theme.description,
+                            "confidence_threshold": theme.confidence_threshold,
+                            "created_at": theme.created_at,
+                            "updated_at": theme.updated_at  # Add the missing updated_at field
+                        }
+                        
+                        # Add association data if available
+                        if theme.id in association_map:
+                            theme_info.update(association_map[theme.id])
+                        else:
+                            # Fallback values if association data is missing
+                            theme_info["confidence_score"] = 0.0
+                            theme_info["detected_at"] = theme.created_at
+                        
+                        theme_data.append(theme_info)
+                
+                log_dict['themes'] = theme_data
                 
                 # Add linguistic metrics from relationship
                 metrics = log.linguistic_metrics
@@ -369,20 +400,27 @@ async def semantic_search(
         execution_time = time.time() - start_time
         result_count = len(combined_results)
         
+        # Always update the execution metadata for this search
         query_record.execution_time = execution_time
         query_record.result_count = result_count
         
-        # Commit SQL changes first
+        # Commit SQL changes first (whether new or updated)
         db.commit()
         
-        # Now store query in Weaviate with the committed ID
-        print(f"[DEBUG] Storing query in Weaviate with ID: {query_record.id}")
-        rag_service.add_query(
+        # Store query in Weaviate with the committed ID
+        # The add_query method will handle deduplication internally
+        print(f"[DEBUG] Storing/checking query in Weaviate with ID: {query_record.id}")
+        weaviate_id = rag_service.add_query(
             query_text=query,
             sql_id=str(query_record.id),
             result_count=result_count,
             execution_time=execution_time
         )
+        
+        if weaviate_id:
+            print(f"[DEBUG] Query stored in Weaviate with ID: {weaviate_id}")
+        else:
+            print(f"[WARN] Failed to store query in Weaviate")
         
         return combined_results
         
@@ -395,7 +433,7 @@ async def semantic_search(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}\n{traceback.format_exc()}")
 
-@router.get("/search/similar", response_model=List[QueryWithScore], status_code=status.HTTP_200_OK)
+@router.get("/logs/search/similar", response_model=List[QueryWithScore], status_code=status.HTTP_200_OK)
 async def get_similar_queries(
     query: str = Query(..., min_length=1),
     limit: int = Query(default=5, ge=1, le=20),
@@ -428,7 +466,7 @@ async def get_similar_queries(
         print(f"[ERROR] Failed to get similar queries: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get similar queries: {str(e)}")
 
-@router.get("/search/suggest", response_model=List[QueryWithScore], status_code=status.HTTP_200_OK)
+@router.get("/logs/search/suggest", response_model=List[QueryWithScore], status_code=status.HTTP_200_OK)
 async def get_query_suggestions(
     partial_query: str = Query(..., min_length=1),
     limit: int = Query(default=5, ge=1, le=20),

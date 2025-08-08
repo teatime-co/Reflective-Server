@@ -25,6 +25,7 @@ class ThemeBase(BaseModel):
 class Theme(ThemeBase):
     id: UUID4
     created_at: datetime
+    updated_at: datetime  # Add the missing updated_at field
     confidence_score: float = Field(ge=0.0, le=1.0)
     detected_at: datetime
 

@@ -1,7 +1,20 @@
-from pydantic import BaseModel, UUID4
+from pydantic import BaseModel, UUID4, Field
 from datetime import datetime
 from typing import Optional, List
 from .log import LogResponse
+
+class SearchRequest(BaseModel):
+    """Request schema for semantic search"""
+    query: str = Field(..., min_length=1, description="Search query text")
+    top_k: int = Field(default=5, ge=1, le=20, description="Maximum number of results to return")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "query": "feeling grateful today",
+                "top_k": 5
+            }
+        }
 
 class QueryBase(BaseModel):
     """Base schema for queries"""

@@ -1,9 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
+
 from app.api import logs, tags, auth, users, sessions, themes, linguistic
 from app.database import engine
 from app.models.models import Base
-import os
 
 # Create database tables
 Base.metadata.create_all(bind=engine)

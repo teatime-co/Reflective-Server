@@ -16,7 +16,7 @@ from ..schemas.user import UserCreate, UserResponse, Token, TokenData
 from ..utils.uuid_utils import ensure_uuid4
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/token")
 
 async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
