@@ -1,0 +1,75 @@
+{
+  "persona": {
+    "name": "Mountain Wanderer",
+    "email": "hike@man.com",
+    "description": "Mountain hiker exploring peaks, wilderness, and personal growth through outdoor adventures",
+    "test_scenarios": [
+      "Semantic search: 'difficult climbs', 'peaceful moments', 'winter hiking', 'mountain views'",
+      "Keyword search: tags like 'hiking', 'summit', 'mountains', 'wilderness'",
+      "Sentiment: awe, challenge, peace, fear, accomplishment",
+      "Progression: different seasons, growing skills, various locations"
+    ]
+  },
+  "entries": [
+    {
+      "title": "Half Dome Summit",
+      "content": "Summited Half Dome today. 16 miles, 4,800 feet of elevation gain, 12 hours car-to-car. My legs are destroyed but my soul is full.\n\nStarted at 4 AM under stars so bright they looked fake. Hiked through the dark with just my headlamp, watching the sky gradually lighten. Hit the sub-dome right at sunrise - the granite glowing pink and gold, Yosemite Valley spread out below like a painting.\n\nThe cables section was intense. Nearly vertical, looking down hundreds of feet, arms burning from pulling myself up. But I focused on one hand-hold at a time, one step, breathing, trusting the system. And then suddenly - the top.\n\nStanding on that summit, 360-degree views of the Sierra Nevada, I felt so small and so significant at the same time. Small because the mountains were here millions of years before me and will remain millions of years after. Significant because I carried myself here through my own strength and will.\n\nThese are the moments I hike for. Pure presence. Pure awe. Pure being. #halfdome #yosemite #summit #hiking #mountains #grateful",
+      "tags": ["halfdome", "yosemite", "summit", "hiking", "mountains", "grateful"],
+      "test_purpose": "Epic summit, awe and accomplishment, specific location, challenging terrain"
+    },
+    {
+      "title": "Winter Turnback on Mount Baldy",
+      "content": "Attempted Mount Baldy in winter conditions and had to turn back. First time I've ever failed to summit, and I'm trying not to feel defeated about it.\n\nThe conditions were worse than forecast. High winds, ice on the trail above 8,000 feet, visibility dropping. I had microspikes but not crampons, and there was a sketchy traverse that just felt too risky solo. I stood there for probably ten minutes trying to decide - push through or turn around.\n\nTurned around. The smart decision, the safe decision. But man, it stings. I was only a mile from the summit. I trained for this, woke up at 3 AM, drove two hours. Turning back felt like failure.\n\nBut I'm alive. And the mountain will be there next time. Winter mountaineering requires humility - respecting conditions, knowing your limits, making hard choices. Today I chose to live to hike another day.\n\nStill, I'm disappointed. Going to rest, recover, and come back better prepared. #mountaineering #winter #safety #turnback #baldy #lessonlearned",
+      "tags": ["mountaineering", "winter", "safety", "turnback", "baldy", "lessonlearned"],
+      "test_purpose": "Difficult decision, safety over summit, mixed emotions, winter conditions"
+    },
+    {
+      "title": "Solo Wilderness Reflection",
+      "content": "Three days into a solo backpacking trip in the John Muir Wilderness. No cell service, no other people, just me and the mountains. The silence here is profound.\n\nCamped by an alpine lake last night at 10,000 feet. Watched the sunset paint the peaks pink, then watched stars emerge one by one until the sky was absolutely packed with them. Saw the Milky Way so clearly I could make out individual stars in the band. Heard only wind, water, my own breathing.\n\nThere's something about solo wilderness time that strips away all the noise of normal life. No emails, no social media, no conversations. Just basic needs - food, water, shelter, warmth. And in that simplicity, clarity.\n\nI've been thinking about what I want from life. Not what I should want, or what others expect, but what genuinely makes me happy. These mountains make me happy. This silence makes me happy. Simple food cooked on a camp stove, sleeping under stars, moving through wilderness - this makes me happy.\n\nI should do this more often. #solobackpacking #wilderness #johnmuir #reflection #solitude #clarity",
+      "tags": ["solobackpacking", "wilderness", "johnmuir", "reflection", "solitude", "clarity"],
+      "test_purpose": "Peaceful, philosophical, solo experience, alpine camping"
+    },
+    {
+      "title": "Trail Running Joy",
+      "content": "Perfect morning trail run at Rancho San Antonio. Just 6 miles but pure flow state. Cool morning air, single track winding through oak trees, legs feeling strong, lungs happy.\n\nThis is different from long alpine hikes - faster, more playful, less serious. Just moving through nature for the joy of it. Saw deer, heard woodpeckers, said good morning to other runners and their dogs.\n\nSometimes the best outdoor experiences aren't the epic ones. Sometimes it's just a Tuesday morning run before work, getting outside, breathing fresh air, remembering I have a body that moves. #trailrunning #morning #bayarea #flow #joy",
+      "tags": ["trailrunning", "morning", "bayarea", "flow", "joy"],
+      "test_purpose": "Short entry (150 words), energetic, flow state, everyday outdoor experience"
+    },
+    {
+      "title": "Group Hike on Mount Tam",
+      "content": "Hiked Mount Tam with the trail club today - group of eight, varying paces, lots of laughter. Different energy than solo hiking but equally valuable.\n\nWe took our time, stopped for snacks, told stories, took ridiculous photos at the summit. Jake brought homemade trail mix with M&Ms (controversial but delicious). Maya identified birds by their calls. Tom knew all the wildflowers by name.\n\nThere's something special about shared outdoor experiences. The conversation that happens on a long hike is different - deeper somehow. Maybe it's the movement, the fresh air, the lack of other distractions. Or maybe it's that hiker culture attracts thoughtful people.\n\nWe talked about everything - jobs, relationships, life goals, favorite gear, near-death experiences on sketchy trails. By the time we got back to the trailhead, I felt like I'd known these people for years instead of months.\n\nThe mountains are incredible alone. But with good people, they're even better. #grouplhike #tamalpais #community #friendship #hiking",
+      "tags": ["grouphike", "tamalpais", "community", "friendship", "hiking"],
+      "test_purpose": "Group experience, community, contrast to solo entries, social bonding"
+    },
+    {
+      "title": "First Scrambling Experience",
+      "content": "First real scrambling experience today on the East Ridge of Mount Russell. Class 3 terrain - more than hiking, not quite rock climbing. Hands and feet, route-finding, exposure.\n\nI won't lie - I was scared. Looking down steep drop-offs, testing handholds, trying to read the rock to find the safest route. My heart was pounding and not just from exertion. But I was also exhilarated.\n\nMy partner was patient, showing me where to step, talking me through exposed sections. 'Don't look down, look at the next hold. Trust your feet. Breathe.' Slowly I relaxed into it, started to enjoy the puzzle of finding the route.\n\nThe summit felt earned in a way that trail summits don't. We had to navigate, problem-solve, manage fear, trust ourselves and each other. Coming down was actually harder - facing out, seeing the exposure, having to down-climb carefully.\n\nThis opened up a whole new type of mountain experience. I want to build these skills, get comfortable with more technical terrain, expand what peaks are possible. #scrambling #sierra #russell #adventure #challenge",
+      "tags": ["scrambling", "sierra", "russell", "adventure", "challenge"],
+      "test_purpose": "Fear and exhilaration, technical terrain, skill development, partnership"
+    },
+    {
+      "title": "Embracing Rainy Hiking",
+      "content": "Hiked in the rain today and it was actually wonderful. I almost canceled - cold, wet, muddy forecast - but decided to embrace it instead.\n\nProper rain gear makes all the difference. Waterproof jacket, rain pants, gaiters. I stayed surprisingly comfortable. And the forest in the rain is magical - misty, quiet, the smell of wet earth and pine, streams running full.\n\nHardly saw anyone else. The trail was mine. Mushrooms everywhere, bright green moss, raindrops on spiderwebs, clouds weaving through the trees. At one point I just stood there, rain falling on my hood, breathing in the wet air, feeling completely alive.\n\nWe're too obsessed with perfect conditions. Sunny days are great, but rain has its own beauty. The wilderness doesn't care about human preferences - it just is, in all its moods and weathers. Learning to appreciate that feels important. #rain #forest #embrace #weather #mindfulness",
+      "tags": ["rain", "forest", "embrace", "weather", "mindfulness"],
+      "test_purpose": "Challenging weather, acceptance, mindfulness, forest hiking"
+    },
+    {
+      "title": "JMT Training Hike",
+      "content": "20-mile training hike with a 40-pound pack today, preparing for the John Muir Trail through-hike this summer. Brutal but necessary.\n\nMy shoulders are sore, feet have hot spots, legs are tired. But I learned what I needed to learn: my pack weight is too heavy (need to optimize gear), my boots need better insoles, I need more electrolytes, I should eat more frequently.\n\nThese long training days aren't glamorous. No epic summit photos, just miles and miles of trail, testing gear and body and mind. But this is how you prepare for big adventures - unglamorous work, identifying problems, making adjustments.\n\nThe JMT is 211 miles, 47,000 feet of elevation gain, three weeks in the wilderness. It's been a dream for years. These training hikes are bringing that dream closer to reality. Every mile today is an investment in the summer. #training #JMT #preparation #longdistance #thruhike",
+      "tags": ["training", "JMT", "preparation", "longdistance", "thruhike"],
+      "test_purpose": "Training and preparation, goal-oriented, unglamorous work, future planning"
+    },
+    {
+      "title": "Bear Encounter",
+      "content": "Came face to face with a black bear today on the trail in Yosemite. Actually terrifying but also incredible.\n\nI was hiking alone, rounded a bend, and there it was - maybe 30 feet away, medium-sized, eating berries. We both froze. My mind went completely blank. Then training kicked in: make myself big, talk calmly, back away slowly.\n\n'Hey bear, I'm just passing through, no problem, backing up now.' Voice shaking but loud. The bear looked at me, assessed I wasn't a threat, went back to eating. I backed up maybe 50 feet, then scrambled off trail to give it wide berth.\n\nMy adrenaline was through the roof for the next hour. Kept looking behind me, jumping at every sound. But also - how lucky am I? To see a wild bear in its natural habitat, doing bear things, reminding me I'm a visitor in their home.\n\nThis is real wilderness. Not a zoo, not controlled, not safe. Wild. And that wildness is exactly what makes it precious. #bear #wildlife #yosemite #wilderness #respect #adrenaline",
+      "tags": ["bear", "wildlife", "yosemite", "wilderness", "respect", "adrenaline"],
+      "test_purpose": "Wildlife encounter, fear and excitement, wilderness reality, solo hiking"
+    },
+    {
+      "title": "Hiking Journey Reflection",
+      "content": "Looking back at my hiking journal from the past six months and I see so much growth. From struggling on moderate day hikes to planning a JMT through-hike. From fear on easy scrambles to seeking out more technical routes. From always hiking with others to embracing solo trips.\n\nThe mountains have taught me more than just outdoor skills. They've taught me patience - you can't rush a summit. Humility - nature is powerful and indifferent. Resilience - you keep going even when it's hard. Presence - the trail demands your full attention.\n\nI'm healthier, stronger, more confident. I know my limits but I also know how to push them safely. I have a community of outdoor friends. I have goals and dreams I'm actively working toward.\n\nMost importantly, I've found something that brings me genuine joy and peace. Bad day at work? Go for a hike. Stressed about life? Go to the mountains. Need clarity? The trail provides.\n\nThis isn't just a hobby anymore. It's a core part of who I am. I'm a hiker. And the mountains will always be there, waiting. #hiking #reflection #growth #journey #mountains #gratitude",
+      "tags": ["hiking", "reflection", "growth", "journey", "mountains", "gratitude"],
+      "test_purpose": "Meta-reflection, growth arc complete, connects to previous entries, gratitude"
+    }
+  ]
+}

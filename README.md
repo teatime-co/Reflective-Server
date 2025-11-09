@@ -162,6 +162,29 @@ pytest tests/core/         # Core functionality tests
 pytest --cov=app --cov-report=html
 ```
 
+### Development Environment Reset
+
+For frontend testing, use the `dev_reset.py` utility to quickly reset your development environment:
+
+```bash
+# Reset databases and create test users
+python dev_reset.py
+
+# Reset and create users with rich journal data
+python dev_reset.py --rich
+
+# Only create users (skip database reset)
+python dev_reset.py --skip-reset
+```
+
+**Test User Credentials:**
+- Quick test: `test@example.com` / `testpass123`
+- Food blogger: `love@food.com` / `foodlover123`
+- Researcher: `cell@apoptosis.com` / `researcher123`
+- Hiker: `hike@man.com` / `hiker123`
+
+See [DEV_SETUP.md](DEV_SETUP.md) for complete documentation and API examples.
+
 ### Database Migrations
 ```bash
 # Create new migration

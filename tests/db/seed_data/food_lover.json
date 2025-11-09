@@ -1,0 +1,75 @@
+{
+  "persona": {
+    "name": "Culinary Explorer",
+    "email": "love@food.com",
+    "description": "Food enthusiast exploring restaurants, home cooking, and culinary traditions",
+    "test_scenarios": [
+      "Semantic search: 'best restaurants', 'cooking disasters', 'Italian cuisine', 'happy meals'",
+      "Keyword search: tags like 'italian', 'baking', 'restaurant', 'homecooking'",
+      "Sentiment: mix of joy, frustration, nostalgia, excitement",
+      "Progression: journey from home cook to food explorer"
+    ]
+  },
+  "entries": [
+    {
+      "title": "Italian Trattoria Discovery",
+      "content": "Found an incredible Italian trattoria in the Mission District today! Osteria della Luna has been there for 30 years, and somehow I never noticed it. The moment I walked in, I was transported - red checkered tablecloths, the smell of fresh basil, Italian opera playing softly in the background.\n\nThe owner, Marco, greeted me like family. I ordered the cacio e pepe, and it was perfection. Just three ingredients - pasta, pecorino, black pepper - but the execution was flawless. The pasta was perfectly al dente, the cheese formed this silky emulsion that coated every strand. I asked Marco his secret and he laughed: 'No secret, just practice. I've been making this dish for forty years.'\n\nI also tried their tiramisu, which was ethereal. Light, not too sweet, with real espresso that you could taste in every layer. I sat there for two hours, savoring every bite, watching Marco work the room. This is what dining should be - not Instagram-worthy plates, but soul-warming food made by people who truly care. #italian #restaurant #authentic #discovery #mission",
+      "tags": ["italian", "restaurant", "authentic", "discovery", "mission"],
+      "test_purpose": "Enthusiastic restaurant discovery, positive sentiment, specific location"
+    },
+    {
+      "title": "Sourdough Failure",
+      "content": "Epic sourdough failure today. I've been nurturing my starter for three weeks, feeding it every day, talking to it like it's a pet. Today was supposed to be the day I finally baked a real artisan loaf.\n\nThe dough looked perfect after the bulk fermentation. I shaped it, let it proof overnight in the fridge, preheated my Dutch oven to 500 degrees. Everything by the book. But when I scored it and put it in the oven, nothing happened. No oven spring. No beautiful ear. Just a sad, dense brick.\n\nI'm genuinely frustrated. All that time and effort for something inedible. My partner tried to be supportive - 'it's just bread, try again' - but they don't understand. This was supposed to work. I followed every YouTube tutorial, read the Tartine book twice, joined sourdough Facebook groups. What am I missing?\n\nMaybe I'm overthinking this. Maybe I need to trust my instincts more and rely less on recipes. Or maybe I'm just not cut out for bread baking. #baking #sourdough #failure #frustrated #learning",
+      "tags": ["baking", "sourdough", "failure", "frustrated", "learning"],
+      "test_purpose": "Negative sentiment, frustration, relatable failure, sets up redemption arc"
+    },
+    {
+      "title": "Farmer's Market Joy",
+      "content": "Sunday morning at the Ferry Building farmers market never gets old. I go early, right when it opens at 8 AM, before the crowds arrive. The fog was still rolling in from the Bay, and there's something magical about walking through stalls of fresh produce while the city is still waking up.\n\nI found the most incredible strawberries at Dirty Girl Produce. They're small, misshapen, nothing like the uniform supermarket ones. But the taste! Intensely sweet, with that floral aroma that real strawberries have. I bought three pints and ate half of one on the walk back to my car.\n\nAlso scored some wild nettles from Tierra Vegetables. The farmer showed me how to handle them without getting stung. I'm planning to make nettle soup this week - something I've never tried before. There's something deeply satisfying about cooking with ingredients that most people don't even know are edible. #farmersmarket #seasonal #local #strawberries #cooking",
+      "tags": ["farmersmarket", "seasonal", "local", "strawberries", "cooking"],
+      "test_purpose": "Positive sensory experience, specific vendors, morning routine"
+    },
+    {
+      "title": "Disappointing Ramen",
+      "content": "Tried the new ramen place on Valencia. Overpriced and mediocre. The broth was watery, noodles were mushy, egg wasn't even marinated. $18 for what tasted like instant ramen with fancy plating. Hard pass. #ramen #disappointed #overpriced",
+      "tags": ["ramen", "disappointed", "overpriced"],
+      "test_purpose": "Very short entry (50 words), negative review, tests short-form content"
+    },
+    {
+      "title": "Grandmother's Portuguese Soup",
+      "content": "Made my grandmother's Portuguese kale soup (caldo verde) from memory tonight, and I think I finally got it right. She passed away five years ago, and I've been trying to recreate this soup ever since. The first dozen attempts were close but not quite there.\n\nToday something clicked. I realized I'd been overthinking it. Grandma never measured anything - she cooked by feel, by taste, by instinct. So I stopped following recipes and just let my hands remember. Sliced the kale thin like she did, used linguiça instead of chorizo, let the potatoes break down to thicken the broth naturally.\n\nWhen I tasted it, I actually got emotional. It transported me right back to her kitchen, Sunday afternoons, the smell of soup simmering while we talked. My mom came over for dinner and took one spoonful and her eyes got watery. 'That's it,' she said. 'That's exactly how she made it.'\n\nFood is memory. Food is love. Food is the way we keep people with us even after they're gone. #family #portuguese #soup #memories #grandmother",
+      "tags": ["family", "portuguese", "soup", "memories", "grandmother"],
+      "test_purpose": "Emotional, nostalgic, family connection, cooking from memory"
+    },
+    {
+      "title": "Chez Panisse Disappointment",
+      "content": "Went to Chez Panisse tonight - yes, THE Chez Panisse, the Alice Waters restaurant that basically invented California cuisine. I've wanted to go for years, saved up for this splurge. And honestly? I was underwhelmed.\n\nDon't get me wrong, the food was good. Fresh ingredients, beautiful plating, impeccable technique. But it felt soulless. Like eating in a museum. Everything was so precious, so carefully arranged. The server recited the provenance of every ingredient like a rehearsed speech. 'The lettuce is from Green Gulch Farm, harvested this morning at dawn...'\n\nI kept thinking about Marco at Osteria della Luna, making cacio e pepe with such joy. Or my grandmother's kitchen, fragrant with soup. Those meals had something this one lacked - warmth, personality, love. Sometimes I think we fetishize 'fine dining' at the expense of actual deliciousness.\n\nStill glad I went. But I'll take a humble neighborhood restaurant over culinary monuments any day. #finedining #overrated #restaurant #california #reflections",
+      "tags": ["finedining", "overrated", "restaurant", "california", "reflections"],
+      "test_purpose": "Contrasts with Entry 1, critical reflection, authenticity theme"
+    },
+    {
+      "title": "Thai Curry from Scratch",
+      "content": "Attempted to make Thai curry paste from scratch instead of buying it from a jar. Spent the afternoon tracking down galangal, fresh turmeric, kaffir lime leaves, Thai basil. My kitchen smells incredible - lemongrass, ginger, chilies, shrimp paste.\n\nThe process was meditative. Pounding everything in my mortar and pestle, watching the ingredients transform into this fragrant, fiery paste. It took forever - my arm is actually sore - but there's something satisfying about creating something so fundamental from raw ingredients.\n\nMade red curry with the paste tonight. The complexity of flavor is unreal. I can taste each individual component, but they also blend into something greater than the sum of parts. My partner said it's the best curry I've ever made, better than most restaurants.\n\nThis is why I love cooking. It connects you to food in a way that buying premade sauces never can. You understand the work, the time, the care that goes into creating flavor. #thai #homecooking #curry #fromscratch #spicy",
+      "tags": ["thai", "homecooking", "curry", "fromscratch", "spicy"],
+      "test_purpose": "Process-focused, meditative cooking, home cooking success"
+    },
+    {
+      "title": "Ritual Coffee Discovery",
+      "content": "New coffee shop opened in my neighborhood - Ritual Coffee on Valencia. I'm usually skeptical of third-wave coffee places (too precious, too expensive), but this place gets it right.\n\nThe barista actually knew what she was talking about. Asked me questions about flavor preferences before recommending a single-origin Ethiopian natural process. Explained the tasting notes - blueberry, chocolate, floral - without being pretentious about it.\n\nThe cappuccino she made was textbook perfect. Microfoam like silk, latte art that actually stayed together, temperature just right. But more importantly, you could actually taste the coffee. Not buried under milk or sugar, just balanced and delicious.\n\nSat there for an hour, working on my laptop, people watching. This is what a neighborhood coffee shop should be. #coffee #cafe #neighborhood #cappuccino #valencia",
+      "tags": ["coffee", "cafe", "neighborhood", "cappuccino", "valencia"],
+      "test_purpose": "Medium-length entry, neighborhood appreciation, third-wave coffee"
+    },
+    {
+      "title": "Food Philosophy Reflection",
+      "content": "Been thinking about my relationship with food lately. Looking back at my journal entries, I realize how much I've changed in the past few months.\n\nI used to think the best meals were at expensive restaurants with famous chefs. But now I realize the meals that move me most are the simple ones - a perfect tomato from the farmers market, my grandmother's soup made from memory, Marco's cacio e pepe made with forty years of practice.\n\nFood isn't about complexity or cost. It's about authenticity, care, connection. It's about understanding where ingredients come from, respecting the people who grow and prepare them, taking time to truly taste and appreciate.\n\nI'm cooking more at home, visiting farmers markets instead of Whole Foods, seeking out neighborhood spots instead of chasing Michelin stars. And I'm enjoying food more than ever. This feels like growth. #reflections #foodphilosophy #growth #mindful #appreciation",
+      "tags": ["reflections", "foodphilosophy", "growth", "mindful", "appreciation"],
+      "test_purpose": "Meta-reflection, personal growth, connects to previous entries"
+    },
+    {
+      "title": "Pizza Success",
+      "content": "SUCCESS! After the sourdough disaster from a few weeks ago, I decided to try pizza instead. Used the same starter, but this time I didn't overthink it.\n\nMade Neapolitan-style dough - high hydration, long fermentation, hand-stretched. Preheated my oven with a pizza stone to 550 degrees for an hour. Kept the toppings simple: San Marzano tomatoes, fresh mozzarella, basil, good olive oil.\n\nThe result was incredible. Crispy-chewy crust with those characteristic leopard spots, slightly charred edges, perfect chew. The satisfaction of pulling it out of the oven and seeing it actually worked was immense.\n\nHad friends over and we made a whole evening of it. Everyone topped their own pizzas, drank wine, laughed about my bread failures. Someone said my pizza was better than most restaurants. I don't know about that, but I'm proud of how far I've come. From bread brick to pizza perfection! #pizza #baking #success #homemade #friends",
+      "tags": ["pizza", "baking", "success", "homemade", "friends"],
+      "test_purpose": "Redemption arc from Entry 2, success after failure, social cooking"
+    }
+  ]
+}
