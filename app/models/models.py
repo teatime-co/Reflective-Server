@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Integer, Float, ForeignKey, Table, LargeBinary, UniqueConstraint, JSON, Boolean, CheckConstraint
+from sqlalchemy import Column, String, DateTime, Integer, Float, ForeignKey, Table, LargeBinary, UniqueConstraint, JSON, Boolean, CheckConstraint, Enum, Text
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
@@ -48,7 +48,16 @@ class User(Base):
     writing_reminder_time = Column(String)  # Store as HH:MM in UTC
     theme_preferences = Column(JSON)  # Store UI/theme preferences
     ai_features_enabled = Column(Boolean, default=True)
-    
+
+    # Privacy tier settings
+    privacy_tier = Column(
+        Enum('local_only', 'analytics_sync', 'full_sync', name='privacy_tier_enum'),
+        default='local_only',
+        nullable=False
+    )
+    he_public_key = Column(Text, nullable=True)
+    sync_enabled_at = Column(DateTime, nullable=True)
+
     # Relationships with cascade delete
     logs = relationship('Log', back_populates='user', cascade='all, delete-orphan')
     writing_sessions = relationship('WritingSession', back_populates='user', cascade='all, delete-orphan')
