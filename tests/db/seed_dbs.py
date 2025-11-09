@@ -100,18 +100,17 @@ def seed_databases():
             session.rollback()
             continue
     
-    # Commit all PostgreSQL changes
     try:
         session.commit()
-        print("✅ Successfully seeded PostgreSQL database!")
+        print("Successfully seeded PostgreSQL database!")
     except Exception as e:
         session.rollback()
         print(f"Error committing to PostgreSQL: {e}")
         return
     finally:
         session.close()
-    
-    print("\n🎉 All databases have been seeded!")
+
+    print("\nAll databases have been seeded!")
 
 if __name__ == "__main__":
     seed_databases() 

@@ -27,7 +27,7 @@ def test_semantic_search(query: str, top_k: int = 5) -> List[SearchResult]:
         response = requests.post(SEARCH_ENDPOINT, params=params)
         response.raise_for_status()
         results = response.json()
-        print(f"\n🔍 Search Results for query: '{query}' (top_k={top_k})")
+        print(f"\nSearch Results for query: '{query}' (top_k={top_k})")
         print(f"Found {len(results)} results")
         
         for idx, result in enumerate(results, 1):
@@ -39,38 +39,32 @@ def test_semantic_search(query: str, top_k: int = 5) -> List[SearchResult]:
         return results
     
     except requests.exceptions.RequestException as e:
-        print(f"❌ Error making request: {e}")
+        print(f"Error making request: {e}")
         return []
 
 def run_test_suite():
     """
     Run a series of test cases for the semantic search functionality
     """
-    print("🧪 Starting Semantic Search Test Suite")
+    print("Starting Semantic Search Test Suite")
     print("=" * 80)
 
-    # Test Case 1: Basic search with default parameters
-    print("\n📝 Test Case 1: Basic search")
+    print("\nTest Case 1: Basic search")
     test_semantic_search("meditation practice")
 
-    # Test Case 2: Search with specific tag-related content
-    print("\n📝 Test Case 2: Search for entries with specific tags")
+    print("\nTest Case 2: Search for entries with specific tags")
     test_semantic_search("mindfulness #meditation")
 
-    # Test Case 3: Search with increased top_k
-    print("\n📝 Test Case 3: Search with top_k=10")
+    print("\nTest Case 3: Search with top_k=10")
     test_semantic_search("daily routine", top_k=10)
 
-    # Test Case 4: Search for emotional content
-    print("\n📝 Test Case 4: Search for emotional content")
+    print("\nTest Case 4: Search for emotional content")
     test_semantic_search("feeling grateful and happy")
 
-    # Test Case 5: Search with minimum length query
-    print("\n📝 Test Case 5: Minimum length query")
-    test_semantic_search("a")  # Should trigger min_length validation
+    print("\nTest Case 5: Minimum length query")
+    test_semantic_search("a")
 
-    # Test Case 6: Search with specific activity
-    print("\n📝 Test Case 6: Activity-specific search")
+    print("\nTest Case 6: Activity-specific search")
     test_semantic_search("morning workout exercise")
 
 if __name__ == "__main__":

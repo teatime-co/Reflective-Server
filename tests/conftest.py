@@ -23,7 +23,7 @@ if not DATABASE_URL:
 if "reflective" in DATABASE_URL and "test" not in DATABASE_URL:
     warnings.warn(
         "\n"
-        "⚠️  WARNING: Using main reflective database for testing!\n"
+        "WARNING: Using main reflective database for testing!\n"
         "    All data will be cleared before and after tests.\n"
         "    Make sure this is what you want.\n",
         RuntimeWarning
@@ -54,29 +54,23 @@ def override_get_db():
 
 def reset_postgres_db():
     """Reset PostgreSQL database by dropping all tables and recreating them"""
-    print("\n🗑️  Clearing all data from database...")
-    # Drop all tables
+    print("\nClearing all data from database...")
     Base.metadata.drop_all(bind=engine)
-    # Recreate all tables
     Base.metadata.create_all(bind=engine)
-    print("✅ Database reset complete")
+    print("Database reset complete")
 
 def reset_weaviate():
     """Reset Weaviate by deleting and recreating schema"""
-    print("\n🗑️  Clearing Weaviate data...")
+    print("\nClearing Weaviate data...")
     rag_service = WeaviateRAGService()
-    
-    # Delete existing schema
+
     try:
         rag_service.client.schema.delete_all()
-        print("✅ Weaviate schema deleted")
+        print("Weaviate schema deleted")
     except Exception as e:
-        print(f"❌ Error deleting Weaviate schema: {e}")
-    
-    # Recreate schema
+        print(f"Error deleting Weaviate schema: {e}")
+
     try:
-        # Add your schema recreation logic here
-        # This should match your production schema creation
         rag_service.client.schema.create_class({
             "class": "Log",
             "vectorizer": "none",
@@ -128,19 +122,18 @@ def reset_weaviate():
                 }
             ]
         })
-        print("✅ Weaviate schema recreated")
+        print("Weaviate schema recreated")
     except Exception as e:
-        print(f"❌ Error recreating Weaviate schema: {e}")
+        print(f"Error recreating Weaviate schema: {e}")
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_database():
     """Reset both PostgreSQL and Weaviate before running tests"""
-    print("\n🧪 Setting up test environment...")
+    print("\nSetting up test environment...")
     reset_postgres_db()
     reset_weaviate()
     yield
-    # Database will not be cleaned up after tests
-    print("\n✨ Test data preserved in database")
+    print("\nTest data preserved in database")
 
 @pytest.fixture(autouse=True)
 def cleanup_after_test(db):
@@ -271,8 +264,9 @@ def test_log(client, test_user, db) -> Dict:
     from app.models.models import Log, Tag
     import uuid
     
-    # Create a test tag
+    # Create a test tag for this user
     tag = Tag(
+        user_id=test_user["user"].id,
         name=f"test_tag_{uuid.uuid4().hex[:8]}",
         color="#FF0000",
         created_at=datetime.utcnow(),

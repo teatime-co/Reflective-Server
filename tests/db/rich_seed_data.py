@@ -33,13 +33,13 @@ def register_user(email: str, password: str, display_name: str) -> dict:
     
     response = requests.post(f"{BASE_URL}/auth/register", json=user_data, headers=HEADERS)
     if response.status_code == 201:
-        print(f"✓ Created user: {email}")
+        print(f"Created user: {email}")
         return response.json()
     elif response.status_code == 400 and "already registered" in response.json().get("detail", ""):
-        print(f"⚠ User {email} already exists")
+        print(f"User {email} already exists")
         return None
     else:
-        print(f"✗ Failed to create user {email}: {response.status_code} - {response.text}")
+        print(f"Failed to create user {email}: {response.status_code} - {response.text}")
         return None
 
 def login_user(email: str, password: str) -> str:
@@ -52,10 +52,10 @@ def login_user(email: str, password: str) -> str:
     response = requests.post(f"{BASE_URL}/auth/token", data=login_data)
     if response.status_code == 200:
         token = response.json()["access_token"]
-        print(f"✓ Logged in as {email}")
+        print(f"Logged in as {email}")
         return token
     else:
-        print(f"✗ Failed to login {email}: {response.status_code} - {response.text}")
+        print(f"Failed to login {email}: {response.status_code} - {response.text}")
         return None
 
 def create_log_entry(token: str, content: str, tags: list = None, completion_status: str = "complete") -> dict:
@@ -77,10 +77,10 @@ def create_log_entry(token: str, content: str, tags: list = None, completion_sta
     
     if response.status_code == 201:
         log = response.json()
-        print(f"  ✓ Created log entry ({len(content.split())} words)")
+        print(f"  Created log entry ({len(content.split())} words)")
         return log
     else:
-        print(f"  ✗ Failed to create log: {response.status_code} - {response.text}")
+        print(f"  Failed to create log: {response.status_code} - {response.text}")
         return None
 
 def process_linguistic_metrics(token: str, log_id: str):
@@ -89,15 +89,15 @@ def process_linguistic_metrics(token: str, log_id: str):
     response = requests.post(f"{BASE_URL}/linguistic/process/{log_id}", headers=auth_headers)
     
     if response.status_code == 200:
-        print(f"  ✓ Processed linguistic metrics")
+        print(f"  Processed linguistic metrics")
         return response.json()
     else:
-        print(f"  ⚠ Could not process linguistics: {response.status_code}")
+        print(f"  Could not process linguistics: {response.status_code}")
         return None
 
 def seed_foodie_data(token: str):
     """Create rich journal entries for the foodie user"""
-    print("🍴 Creating foodie journal entries...")
+    print("Creating foodie journal entries...")
     
     entries = [
         {
@@ -149,7 +149,7 @@ Food tastes different when you know its story, when you can shake hands with the
 
 def seed_phd_data(token: str):
     """Create rich journal entries for the PhD student"""
-    print("🔬 Creating PhD student journal entries...")
+    print("Creating PhD student journal entries...")
     
     entries = [
         {
@@ -202,7 +202,7 @@ My labmates threw a small celebration, complete with cake decorated to look like
 
 def seed_hiker_data(token: str):
     """Create rich journal entries for the hiker"""
-    print("🥾 Creating hiker journal entries...")
+    print("Creating hiker journal entries...")
     
     entries = [
         {
@@ -255,7 +255,7 @@ The rain fell steadily each night, a gentle percussion on my tent that lulled me
 
 def main():
     """Main seeding function"""
-    print("🌱 Starting rich data seeding...")
+    print("Starting rich data seeding...")
     print(f"API Base URL: {BASE_URL}")
     
     # Define users to create
@@ -280,29 +280,26 @@ def main():
         }
     ]
     
-    # Process each user
     for user in users:
-        print(f"\n👤 Processing user: {user['email']}")
+        print(f"\nProcessing user: {user['email']}")
         
         # Register user (or skip if exists)
         register_user(user["email"], user["password"], user["display_name"])
         
-        # Login to get token
         token = login_user(user["email"], user["password"])
         if not token:
-            print(f"⚠ Skipping data creation for {user['email']} - couldn't login")
+            print(f"Skipping data creation for {user['email']} - couldn't login")
             continue
         
-        # Create rich journal entries
         try:
             user["seed_function"](token)
-            print(f"✓ Completed data seeding for {user['email']}")
+            print(f"Completed data seeding for {user['email']}")
         except Exception as e:
-            print(f"✗ Error seeding data for {user['email']}: {e}")
-    
-    print(f"\n🎉 Rich data seeding completed!")
-    print(f"📊 Created users with diverse, semantically rich journal entries")
-    print(f"🔍 All entries processed for linguistic metrics and semantic search")
+            print(f"Error seeding data for {user['email']}: {e}")
+
+    print(f"\nRich data seeding completed!")
+    print(f"Created users with diverse, semantically rich journal entries")
+    print(f"All entries processed for linguistic metrics and semantic search")
 
 if __name__ == "__main__":
     main() 

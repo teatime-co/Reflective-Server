@@ -74,8 +74,12 @@ class LogCreate(LogBase):
     session_id: Optional[UUID4] = None
     prompt_id: Optional[UUID4] = None
 
-class LogUpdate(LogBase):
-    id: UUID4  # Required for updates
+class LogUpdate(BaseModel):
+    content: str
+    mood_score: Optional[float] = Field(None, ge=-1.0, le=1.0)
+    completion_status: Optional[str] = None
+    target_word_count: Optional[int] = None
+    writing_duration: Optional[int] = None
     tags: List[str] = []  # List of tag names
     session_id: Optional[UUID4] = None
     prompt_id: Optional[UUID4] = None

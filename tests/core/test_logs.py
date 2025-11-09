@@ -118,7 +118,7 @@ def test_search_logs(client, test_user, test_log):
     response = client.post(
         "/api/search",
         headers=test_user["headers"],
-        params={"query": "test", "top_k": 5}
+        json={"query": "test", "top_k": 5}
     )
     assert response.status_code == status.HTTP_200_OK
     data = response.json()

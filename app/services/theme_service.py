@@ -37,10 +37,8 @@ class ThemeService:
             
     def _calculate_similarity(self, embedding1: List[float], embedding2: List[float]) -> float:
         """Calculate cosine similarity between two embeddings"""
-        # Convert to numpy arrays
         a = np.array(embedding1)
         b = np.array(embedding2)
-        # Calculate cosine similarity
         return np.dot(a, b) / (norm(a) * norm(b))
         
     def detect_themes(self, text: str, themes: List[Theme], confidence_threshold: float = 0.3) -> List[Dict]:
@@ -58,18 +56,14 @@ class ThemeService:
         
         if not text or not themes:
             return []
-            
-        # Get embeddings for input text
+
         text_embedding = self._get_embeddings(text.lower())
-        
-        # Process and compare each theme
+
         theme_matches = []
         for theme in themes:
-            # Get theme text (description or name)
             theme_text = theme.description.lower() if theme.description else theme.name.lower()
             theme_embedding = self._get_embeddings(theme_text)
-            
-            # Calculate similarity
+
             similarity = self._calculate_similarity(text_embedding, theme_embedding)
             print(f"Theme '{theme.name}' similarity: {similarity}")
             
@@ -78,8 +72,7 @@ class ThemeService:
                     "theme": theme,
                     "confidence_score": float(similarity)
                 })
-                
-        # Sort by confidence score
+
         theme_matches.sort(key=lambda x: x["confidence_score"], reverse=True)
         return theme_matches
 
@@ -96,7 +89,6 @@ class ThemeService:
         Returns:
             Created Theme instance
         """
-        # Check if theme already exists for this user
         existing_theme = db.query(Theme).filter_by(
             user_id=user_id,
             name=name
@@ -105,7 +97,6 @@ class ThemeService:
         if existing_theme:
             return existing_theme
 
-        # Create new theme (automatically detected, not custom)
         theme = Theme(
             user_id=user_id,
             name=name,
@@ -138,43 +129,35 @@ class ThemeService:
         """
         if not log.content:
             return []
-            
-        # Get all available themes for the user
+
         existing_themes = db.query(Theme).filter_by(user_id=log.user_id).all()
-        
-        # First, try to detect themes from existing themes
+
         theme_matches = self.detect_themes(log.content, existing_themes)
-        
-        # If no strong matches found, generate new themes from content
+
         if not theme_matches or max(match["confidence_score"] for match in theme_matches) < 0.35:
             new_theme_suggestions = self.get_theme_suggestions(db, log.content, log.user_id, max_suggestions=3)
-            
-            # Create new themes automatically
+
             for suggestion in new_theme_suggestions:
                 new_theme = self._create_theme_automatically(db, log.user_id, suggestion)
                 if new_theme:
                     # Add to matches with high confidence since it was generated from this content
                     theme_matches.append({
                         "theme": new_theme,
-                        "confidence_score": 0.35  # High confidence for newly generated themes
+                        "confidence_score": 0.35
                     })
-        
-        # Update theme associations
+
         self._update_theme_associations(db, log, theme_matches)
         
         return theme_matches
         
     def _update_theme_associations(self, db: Session, log: Log, theme_matches: List[Dict]):
         """Update theme associations for a log entry"""
-        # Remove existing associations
         db.query(log_theme_association).filter_by(log_id=log.id).delete()
-        
-        # Add new associations
+
         for match in theme_matches:
             theme = match["theme"]
             confidence_score = match["confidence_score"]
-            
-            # Create association with confidence score
+
             db.execute(
                 log_theme_association.insert().values(
                     log_id=log.id,
@@ -183,7 +166,7 @@ class ThemeService:
                     detected_at=datetime.utcnow()
                 )
             )
-        
+
         db.commit()
 
     def get_user_themes(self, db: Session, user_id: str) -> List[Theme]:
@@ -228,15 +211,12 @@ class ThemeService:
         """
         if not text:
             return []
-            
-        # Get embeddings for the input text
+
         text_embedding = self._get_embeddings(text.lower())
-        
-        # Get existing themes for comparison
+
         existing_themes = self.get_user_themes(db, user_id)
         existing_names = {theme.name.lower() for theme in existing_themes}
-        
-        # Generate candidate phrases using an LLM
+
         response = requests.post(
             "http://localhost:11434/api/generate",
             json={
@@ -254,16 +234,14 @@ class ThemeService:
         if response.status_code != 200:
             print(f"[ERROR] Failed to generate themes. Status: {response.status_code}")
             return []
-            
-        # Parse response and get unique suggestions
+
         suggestions = response.json()["response"].strip().split("\n")
         suggestions = [s.strip().lower() for s in suggestions if s.strip()]
         suggestions = [s for s in suggestions if s not in existing_names]
-        
+
         if self.debug:
             print(f"\n[DEBUG] Generated theme suggestions: {suggestions}")
-        
-        # Score suggestions by similarity to the text
+
         scored_suggestions = []
         for suggestion in suggestions:
             suggestion_embedding = self._get_embeddings(suggestion)
@@ -271,10 +249,8 @@ class ThemeService:
             scored_suggestions.append((suggestion, similarity))
             if self.debug:
                 print(f"[DEBUG] Theme '{suggestion}' similarity: {similarity}")
-            
-        # Sort by similarity score and return top suggestions
+
         scored_suggestions.sort(key=lambda x: x[1], reverse=True)
         return [suggestion for suggestion, _ in scored_suggestions[:max_suggestions]]
 
-# Create global instance
 theme_service = ThemeService() 

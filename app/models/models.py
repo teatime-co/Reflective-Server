@@ -56,6 +56,7 @@ class User(Base):
     insights = relationship('UserInsight', back_populates='user', cascade='all, delete-orphan')
     queries = relationship('Query', back_populates='user', cascade='all, delete-orphan')
     themes = relationship('Theme', back_populates='user', cascade='all, delete-orphan')
+    tags = relationship('Tag', back_populates='user', cascade='all, delete-orphan')
 
 class WritingSession(Base):
     __tablename__ = 'writing_sessions'
@@ -190,13 +191,20 @@ class Tag(Base):
     __tablename__ = 'tags'
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False, unique=True, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    name = Column(String, nullable=False, index=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     last_used_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
     color = Column(String, nullable=True)  # hex color for UI
 
     # Relationships
+    user = relationship('User', back_populates='tags')
     logs = relationship('Log', secondary=tag_log_association, back_populates='tags')
+
+    # Add unique constraint for name per user
+    __table_args__ = (
+        UniqueConstraint('user_id', 'name', name='uq_user_tag_name'),
+    )
 
     @staticmethod
     def generate_random_color() -> str:
@@ -207,29 +215,34 @@ class Tag(Base):
         return f"#{int(r * 255):02X}{int(g * 255):02X}{int(b * 255):02X}"
 
     @classmethod
-    def get_or_create(cls, db, name: str, color: str = None):
-        """Get an existing tag by name or create a new one if it doesn't exist
-        
+    def get_or_create(cls, db, name: str, user_id, color: str = None):
+        """Get an existing tag by name for a user or create a new one if it doesn't exist
+
         Args:
             db: Database session
             name: Tag name
+            user_id: User ID (UUID)
             color: Optional hex color string from client
         """
         # Normalize the tag name
         normalized_name = name.strip()
-        
-        # Try to find existing tag
-        existing_tag = db.query(cls).filter(cls.name == normalized_name).first()
+
+        # Try to find existing tag for this user
+        existing_tag = db.query(cls).filter(
+            cls.name == normalized_name,
+            cls.user_id == user_id
+        ).first()
         if existing_tag:
             existing_tag.last_used_at = datetime.utcnow()
             # Update color if provided and different from current
             if color and existing_tag.color != color:
                 existing_tag.color = color
             return existing_tag
-        
-        # Create new tag if it doesn't exist
+
+        # Create new tag if it doesn't exist for this user
         new_tag = cls(
             name=normalized_name,
+            user_id=user_id,
             last_used_at=datetime.utcnow(),
             color=color if color else cls.generate_random_color()  # Use provided color or generate new one
         )

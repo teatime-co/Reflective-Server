@@ -20,34 +20,34 @@ async def get_or_create_tag(
     db: Session,
     color: Optional[str] = None
 ) -> Tag:
-    """Utility function to get or create a tag"""
-    # First check for existing tag by name only
-    existing_tag = db.query(Tag).filter(Tag.name == name).first()
-    
+    """Utility function to get or create a tag for the current user"""
+    # Check for existing tag by name and user_id
+    existing_tag = db.query(Tag).filter(
+        Tag.name == name,
+        Tag.user_id == current_user.id
+    ).first()
+
     if existing_tag:
-        # Check if this user has any logs with this tag
-        user_has_tag = db.query(Log).join(Log.tags).filter(
-            Log.user_id == current_user.id,
-            Tag.id == existing_tag.id
-        ).first() is not None
-        
-        # Return existing tag regardless of user association
-        # This allows sharing tags between users
+        # Update last_used_at
+        existing_tag.last_used_at = datetime.utcnow()
+        if color and existing_tag.color != color:
+            existing_tag.color = color
         return existing_tag
-    
-    # Create new tag if it doesn't exist
+
+    # Create new tag for this user
     new_tag = Tag(
         id=uuid.uuid4(),
+        user_id=current_user.id,
         name=name,
         color=color or Tag.generate_random_color(),
         created_at=datetime.utcnow(),
         last_used_at=datetime.utcnow()
     )
-    
+
     db.add(new_tag)
     db.commit()
     db.refresh(new_tag)
-    
+
     return new_tag
 
 @router.get("/tags", response_model=List[TagResponse], status_code=status.HTTP_200_OK)
@@ -74,24 +74,21 @@ async def create_tag(
     current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create a new tag or return existing one if name already exists"""
-    # First check for existing tag by name only
-    existing_tag = db.query(Tag).filter(Tag.name == tag.name).first()
-    
+    """Create a new tag or return existing one if name already exists for this user"""
+    # Check for existing tag by name and user_id
+    existing_tag = db.query(Tag).filter(
+        Tag.name == tag.name,
+        Tag.user_id == current_user.id
+    ).first()
+
     if existing_tag:
-        # Check if this user has any logs with this tag
-        user_has_tag = db.query(Log).join(Log.tags).filter(
-            Log.user_id == current_user.id,
-            Tag.id == existing_tag.id
-        ).first() is not None
-        
-        if user_has_tag:
-            response.status_code = status.HTTP_200_OK
-            return existing_tag
-    
-    # Create new tag if no existing tag or user doesn't have access to it
+        response.status_code = status.HTTP_200_OK
+        return existing_tag
+
+    # Create new tag for this user
     db_tag = Tag(
         id=uuid.uuid4(),
+        user_id=current_user.id,
         name=tag.name,
         color=tag.color or Tag.generate_random_color(),
         created_at=datetime.utcnow(),
@@ -100,7 +97,7 @@ async def create_tag(
     db.add(db_tag)
     db.commit()
     db.refresh(db_tag)
-    
+
     response.status_code = status.HTTP_201_CREATED
     return db_tag
 

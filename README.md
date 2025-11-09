@@ -2,7 +2,7 @@
 
 A sophisticated FastAPI backend for the Reflective journaling application, featuring AI-powered analytics, semantic search, and comprehensive user management.
 
-## 🚀 Overview
+## Overview
 
 Reflective Server is a robust backend that combines traditional journaling functionality with cutting-edge AI features including:
 
@@ -13,9 +13,9 @@ Reflective Server is a robust backend that combines traditional journaling funct
 - **User Management**: JWT-based authentication with comprehensive user preferences
 - **Real-time Processing**: Async processing pipeline for AI features
 
-## 📋 Features
+## Features
 
-### ✅ **Fully Implemented**
+### Fully Implemented
 
 #### **Core Platform**
 - **User Authentication & Management**
@@ -62,12 +62,12 @@ Reflective Server is a robust backend that combines traditional journaling funct
   - Interruption counting
   - Session type classification (daily/freeform/prompted)
 
-### 🔶 **Schema Ready (Implementation Pending)**
+### Schema Ready (Implementation Pending)
 - **Revision Tracking**: Database schema complete, service layer needed
 - **Contextual Prompts**: Schema ready, prompt generation service needed
 - **User Insights**: Schema ready, analytics computation needed
 
-## 🏗️ Architecture
+## Architecture
 
 ### **Tech Stack**
 - **Framework**: FastAPI 0.104.1
@@ -94,10 +94,10 @@ app/
 ├── schemas/               # Pydantic request/response models
 ├── services/              # Business logic layer
 │   ├── auth_service.py    # Authentication logic
-│   ├── weaviate_rag_service.py # Semantic search (25KB)
-│   ├── theme_service.py   # AI theme detection (9.7KB)
-│   ├── linguistic_service.py # NLP analysis (19KB)
-│   └── session_service.py # Session management (7KB)
+│   ├── weaviate_rag_service.py # Semantic search
+│   ├── theme_service.py   # AI theme detection
+│   ├── linguistic_service.py # NLP analysis
+│   └── session_service.py # Session management
 ├── utils/                 # Utility functions
 ├── main.py               # FastAPI application setup
 └── database.py           # Database configuration
@@ -118,7 +118,7 @@ The server implements a comprehensive schema supporting:
 - **Prompts**: Contextual prompts (schema ready)
 - **User Insights**: Analytics and growth tracking (schema ready)
 
-## 🚦 Getting Started
+## Getting Started
 
 ### **Prerequisites**
 - Python 3.8+
@@ -193,7 +193,7 @@ The server implements a comprehensive schema supporting:
    flake8 app/
    ```
 
-## 📚 API Documentation
+## API Documentation
 
 ### **Authentication**
 ```http
@@ -230,7 +230,7 @@ GET    /api/themes         # AI-detected themes
 GET    /api/linguistic/{log_id} # Text analysis
 ```
 
-## 🧪 Testing
+## Testing
 
 The server includes comprehensive test coverage:
 
@@ -253,7 +253,7 @@ pytest --cov=app --cov-report=html
 open htmlcov/index.html
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### **Database Configuration**
 - **Development**: SQLite (for quick testing)
@@ -270,7 +270,7 @@ open htmlcov/index.html
 - **CORS**: Configurable origins
 - **Rate Limiting**: Available for production
 
-## 🚀 Deployment
+## Deployment
 
 ### **Docker Deployment**
 ```bash
@@ -289,14 +289,14 @@ DEBUG=false
 CORS_ORIGINS=https://yourapp.com,https://api.yourapp.com
 ```
 
-## 📊 Performance & Monitoring
+## Performance & Monitoring
 
 - **Response Times**: Average <100ms for CRUD operations
 - **Search Performance**: Semantic search <500ms
 - **Scalability**: Designed for horizontal scaling
 - **Monitoring**: Health check endpoints available
 
-## 🔮 Roadmap
+## Roadmap
 
 ### **Upcoming Features** (Schema Ready)
 1. **Revision Tracking System**: Complete version control for entries
@@ -310,7 +310,7 @@ CORS_ORIGINS=https://yourapp.com,https://api.yourapp.com
 - Mobile app backend support
 - Advanced analytics dashboard
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -321,11 +321,11 @@ CORS_ORIGINS=https://yourapp.com,https://api.yourapp.com
 7. Push to the branch (`git push origin feature/amazing-feature`)
 8. Open a Pull Request
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🆘 Support
+## Support
 
 - **Documentation**: Available at `/docs` endpoint
 - **Issues**: GitHub Issues
@@ -333,4 +333,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**Built with ❤️ for thoughtful journaling and personal growth** 
+Built for thoughtful journaling and personal growth 

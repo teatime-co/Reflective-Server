@@ -39,10 +39,8 @@ class LinguisticService:
             
     def _calculate_similarity(self, embedding1: List[float], embedding2: List[float]) -> float:
         """Calculate cosine similarity between two embeddings"""
-        # Convert to numpy arrays
         a = np.array(embedding1)
         b = np.array(embedding2)
-        # Calculate cosine similarity
         return np.dot(a, b) / (norm(a) * norm(b))
     
     def analyze_text(self, text: str) -> Dict:
@@ -55,7 +53,6 @@ class LinguisticService:
         Returns:
             Dict containing linguistic metrics
         """
-        # Handle empty text
         if not text.strip():
             return {
                 "vocabulary_diversity_score": 0.0,
@@ -91,12 +88,10 @@ class LinguisticService:
                     }
                 }
             }
-            
-        # Basic text preprocessing
+
         doc = self.nlp(text)
         blob = TextBlob(text)
-        
-        # Calculate metrics
+
         metrics = {
             "vocabulary_diversity_score": self._calculate_vocabulary_diversity(doc),
             "sentiment_score": blob.sentiment.polarity,
@@ -105,7 +100,7 @@ class LinguisticService:
             "emotion_scores": self._analyze_emotions(text),
             "writing_style_metrics": self._analyze_writing_style(doc)
         }
-        
+
         return metrics
     
     def process_log(self, db: Session, log: Log) -> Optional[LinguisticMetrics]:
@@ -119,24 +114,18 @@ class LinguisticService:
         Returns:
             Created LinguisticMetrics instance
         """
-        # Skip if no content
         if not log.content:
             return None
-            
-        # Get metrics
+
         metrics = self.analyze_text(log.content)
-        
-        # Create or update metrics
+
         linguistic_metrics = log.linguistic_metrics or LinguisticMetrics(log_id=log.id)
-        
-        # Store old processed_at if updating
+
         old_processed_at = linguistic_metrics.processed_at if linguistic_metrics.id else None
-        
-        # Update all fields
+
         for key, value in metrics.items():
             setattr(linguistic_metrics, key, value)
-        
-        # Ensure new timestamp is always greater than old one
+
         new_processed_at = datetime.utcnow()
         if old_processed_at and new_processed_at <= old_processed_at:
             # If new timestamp would be less than or equal to old one,
@@ -145,15 +134,13 @@ class LinguisticService:
                 old_processed_at.timestamp() + 0.000001
             )
         linguistic_metrics.processed_at = new_processed_at
-        
-        # Save if new
+
         if not linguistic_metrics.id:
             db.add(linguistic_metrics)
-            
-        # Always commit changes
+
         db.commit()
         db.refresh(linguistic_metrics)
-        
+
         return linguistic_metrics
     
     def _calculate_vocabulary_diversity(self, doc) -> float:
@@ -176,15 +163,13 @@ class LinguisticService:
                 "complex": "The intricate interplay between quantum mechanical phenomena and macroscopic observations presents a fascinating paradox that challenges our fundamental understanding of reality.",
                 "very_complex": "The epistemological implications of quantum entanglement suggest a fundamental interconnectedness of physical systems that transcends classical notions of locality and causality, compelling us to reevaluate our conception of objective reality."
             }
-            
-            # Get embeddings
+
             text_embedding = self._get_embeddings(doc.text)
             reference_embeddings = {
                 level: self._get_embeddings(ref_text)
                 for level, ref_text in reference_texts.items()
             }
-            
-            # Calculate similarities with reference texts
+
             similarities = {
                 level: self._calculate_similarity(text_embedding, ref_embedding)
                 for level, ref_embedding in reference_embeddings.items()
@@ -288,20 +273,17 @@ class LinguisticService:
         try:
             if self.debug:
                 print("[DEBUG] Getting text embedding...")
-            # Get embeddings for input text
             text_embedding = self._get_embeddings(text)
-            
+
             if self.debug:
                 print("[DEBUG] Getting emotion anchor embeddings...")
-            # Get embeddings for emotion anchors
             emotion_embeddings = {
                 emotion: self._get_embeddings(anchor_text)
                 for emotion, anchor_text in emotion_anchors.items()
             }
-            
+
             if self.debug:
                 print("[DEBUG] Calculating emotion similarities...")
-            # Calculate similarities and apply softmax-like normalization
             similarities = {
                 emotion: self._calculate_similarity(text_embedding, emotion_embedding)
                 for emotion, emotion_embedding in emotion_embeddings.items()
@@ -322,45 +304,42 @@ class LinguisticService:
                 print("\n[DEBUG] After exponential scaling:")
                 for emotion, score in exp_similarities.items():
                     print(f"[DEBUG] - {emotion}: {score:.3f}")
-            
-            # Normalize to get final scores
+
             total = sum(exp_similarities.values())
             emotion_scores = {
                 emotion: score / total if total > 0 else 0.0
                 for emotion, score in exp_similarities.items()
             }
-            
+
             if self.debug:
                 print("\n[DEBUG] Final normalized emotion scores:")
                 for emotion, score in emotion_scores.items():
                     print(f"[DEBUG] - {emotion}: {score:.3f}")
-            
-            # Calculate subjectivity using embeddings
+
             if self.debug:
                 print("\n[DEBUG] Calculating subjectivity score...")
-                
+
             objective_anchor = "The sky is blue. Water freezes at 0 degrees Celsius. The Earth orbits the Sun."
             subjective_anchor = "This is the most amazing thing ever! I absolutely love how beautiful and perfect everything is!"
-            
+
             obj_embedding = self._get_embeddings(objective_anchor)
             subj_embedding = self._get_embeddings(subjective_anchor)
-            
+
             obj_sim = self._calculate_similarity(text_embedding, obj_embedding)
             subj_sim = self._calculate_similarity(text_embedding, subj_embedding)
-            
-            # Calculate subjectivity score (0 = objective, 1 = subjective)
+
             subjectivity = subj_sim / (obj_sim + subj_sim) if (obj_sim + subj_sim) > 0 else 0.5
             
             if self.debug:
                 print(f"[DEBUG] Objective similarity: {obj_sim:.3f}")
                 print(f"[DEBUG] Subjective similarity: {subj_sim:.3f}")
                 print(f"[DEBUG] Final subjectivity score: {subjectivity:.3f}")
-            
+
             return {
                 "emotions": emotion_scores,
                 "subjectivity": subjectivity
             }
-            
+
         except Exception as e:
             print(f"[ERROR] Failed to analyze emotions: {str(e)}")
             if self.debug:
@@ -374,8 +353,7 @@ class LinguisticService:
         """Analyze writing style metrics using both traditional NLP and embeddings"""
         if not doc:
             return {}
-            
-        # Traditional sentence type analysis
+
         sentence_types = {
             "declarative": 0,
             "interrogative": 0,
@@ -392,8 +370,7 @@ class LinguisticService:
                 sentence_types["exclamatory"] += 1
             else:
                 sentence_types["declarative"] += 1
-                
-        # Calculate traditional style metrics
+
         traditional_metrics = {
             "avg_sentence_length": len(doc) / total_sentences if total_sentences > 0 else 0,
             "sentence_types": {k: v/total_sentences if total_sentences > 0 else 0 
@@ -405,9 +382,8 @@ class LinguisticService:
                     if token.pos_ == "PRON"]) / len(doc)
             }
         }
-        
+
         try:
-            # Add embedding-based style analysis
             style_anchors = {
                 "formal": "This document presents a comprehensive analysis of the subject matter. The methodology employed demonstrates rigorous attention to detail.",
                 "casual": "Hey! Just wanted to share some quick thoughts about this. It's pretty cool how everything worked out.",
@@ -415,32 +391,26 @@ class LinguisticService:
                 "narrative": "The sun was setting as she walked along the beach, memories of that summer flooding back. Each wave brought a new story.",
                 "persuasive": "It is crucial that we consider the implications of this decision. The evidence clearly shows the benefits outweigh the costs."
             }
-            
-            # Get embeddings for the full text
+
             text_embedding = self._get_embeddings(doc.text)
-            
-            # Get embeddings for style anchors
+
             style_embeddings = {
                 style: self._get_embeddings(anchor_text)
                 for style, anchor_text in style_anchors.items()
             }
-            
-            # Calculate style similarities
+
             style_scores = {
                 style: self._calculate_similarity(text_embedding, style_embedding)
                 for style, style_embedding in style_embeddings.items()
             }
-            
-            # Combine traditional and embedding-based metrics
+
             return {
                 **traditional_metrics,
                 "style_similarities": style_scores
             }
-            
+
         except Exception as e:
             print(f"[ERROR] Failed to analyze writing style with embeddings: {str(e)}")
-            # Fallback to traditional metrics only
             return traditional_metrics
 
-# Create global instance
 linguistic_service = LinguisticService() 

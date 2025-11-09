@@ -20,12 +20,10 @@ def test_get_tags(client, test_user, test_log):
 def test_create_tag(client, test_user):
     """Test creating a new tag"""
     tag_data = {
-        "id": str(uuid.uuid4()),
         "name": f"test_tag_{uuid.uuid4().hex[:8]}",
-        "color": "#FF0000",
-        "created_at": datetime.utcnow().isoformat()
+        "color": "#FF0000"
     }
-    
+
     response = client.post(
         "/api/tags",
         headers=test_user["headers"],
@@ -37,14 +35,12 @@ def test_create_tag(client, test_user):
     assert data["color"] == tag_data["color"]
 
 def test_create_duplicate_tag(client, test_user, test_tag):
-    """Test creating a tag with existing name"""
+    """Test creating a tag with existing name for the same user"""
     tag_data = {
-        "id": str(uuid.uuid4()),
         "name": test_tag["name"],
-        "color": "#00FF00",
-        "created_at": datetime.utcnow().isoformat()
+        "color": "#00FF00"
     }
-    
+
     response = client.post(
         "/api/tags",
         headers=test_user["headers"],
@@ -86,7 +82,7 @@ def test_cleanup_stale_tags(client, test_user, test_user2, db):
         )
         assert response.status_code == status.HTTP_201_CREATED
     
-    # Run cleanup for test_user
+    # Run cleanup for test_user (should only affect test_user's tags)
     response = client.delete(
         "/api/tags/cleanup",
         headers=test_user["headers"],
@@ -95,8 +91,8 @@ def test_cleanup_stale_tags(client, test_user, test_user2, db):
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert "deleted_count" in data
-    
-    # Verify shared tag still exists
+
+    # Verify user2's tag with same name still exists (tags are per-user, not shared)
     response = client.get("/api/tags", headers=test_user2["headers"])
     assert response.status_code == status.HTTP_200_OK
     data = response.json()

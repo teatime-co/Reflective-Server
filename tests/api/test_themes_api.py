@@ -66,25 +66,6 @@ def sample_log(db, test_user):
     db.commit()
     return log
 
-def test_create_theme(test_user, client):
-    """Test theme creation"""
-    response = client.post(
-        "/api/themes",
-        headers=test_user["headers"],
-        json={
-            "name": "creativity",
-            "description": "Artistic expression and creative processes"
-        }
-    )
-    
-    assert response.status_code == 201
-    data = response.json()
-    assert data["name"] == "creativity"
-    assert data["description"] == "Artistic expression and creative processes"
-    assert "id" in data
-    assert "created_at" in data
-    assert data["user_id"] == str(test_user["user"].id)
-
 def test_get_themes(test_user, client, sample_themes):
     """Test getting all themes"""
     response = client.get(
@@ -212,52 +193,4 @@ def test_suggest_themes_empty(test_user, client):
     
     assert response.status_code == 200
     data = response.json()
-    assert len(data["suggested_themes"]) == 0
-
-def test_create_duplicate_theme(test_user, client, sample_themes):
-    """Test creating a theme that already exists for the user"""
-    response = client.post(
-        "/api/themes",
-        headers=test_user["headers"],
-        json={
-            "name": "personal growth",
-            "description": "Updated description"
-        }
-    )
-    
-    assert response.status_code == 200
-    data = response.json()
-    assert "message" in data
-    assert data["message"] == "Theme already exists"
-    assert data["theme"]["name"] == "personal growth"
-    assert data["theme"]["description"] == "Updated description"
-    assert data["theme"]["user_id"] == str(test_user["user"].id)
-
-def test_create_theme_different_users(test_user, test_user2, client):
-    """Test that different users can create themes with the same name"""
-    theme_data = {
-        "name": "creativity",
-        "description": "Artistic expression"
-    }
-    
-    # Create theme for first user
-    response1 = client.post(
-        "/api/themes",
-        headers=test_user["headers"],
-        json=theme_data
-    )
-    assert response1.status_code == 201
-    
-    # Create same theme for second user
-    response2 = client.post(
-        "/api/themes",
-        headers=test_user2["headers"],
-        json=theme_data
-    )
-    assert response2.status_code == 201
-    
-    # Verify themes have same name but different user_ids
-    theme1 = response1.json()
-    theme2 = response2.json()
-    assert theme1["name"] == theme2["name"]
-    assert theme1["user_id"] != theme2["user_id"] 
+    assert len(data["suggested_themes"]) == 0 

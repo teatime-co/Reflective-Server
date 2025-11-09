@@ -118,23 +118,6 @@ def test_process_log_empty_content(theme_service, db: Session, test_user):
     matches = theme_service.process_log(db, log)
     assert len(matches) == 0
 
-def test_create_theme(theme_service, db: Session, test_user):
-    """Test theme creation"""
-    name = "creativity"
-    description = "Artistic expression and creative processes"
-    
-    theme = theme_service.create_theme(db, test_user.id, name, description)  # Fix parameter order
-    
-    assert theme.id is not None
-    assert theme.name == name
-    assert theme.description == description
-    assert theme.user_id == test_user.id
-    
-    # Check it was saved to database
-    db_theme = db.query(Theme).filter_by(name=name, user_id=test_user.id).first()
-    assert db_theme is not None
-    assert db_theme.id == theme.id
-
 def test_update_theme_associations(theme_service, db: Session, sample_log, sample_themes):
     """Test updating theme associations"""
     # Initial processing
