@@ -40,6 +40,7 @@ def print_section(title: str):
     """Print a section header"""
     print(f"\n{'=' * 20} {title} {'=' * 20}")
 
+# SKIP - Integration Tests
 @pytest.mark.integration
 @pytest.mark.skip(reason="Integration test - requires Ollama and running server")
 class TestSearchEndpoints:

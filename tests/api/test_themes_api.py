@@ -110,27 +110,25 @@ def test_detect_themes(test_user, client, sample_themes, sample_log):
     print(f"Available themes:")
     for theme in sample_themes:
         print(f"  - {theme.name}: {theme.description}")
-    
+
     response = client.post(
         f"/api/themes/detect/{sample_log.id}",
         headers=test_user["headers"]
     )
-    
+
     print(f"\nResponse status: {response.status_code}")
     data = response.json()
     print(f"Response data: {data}")
-    
+
     assert response.status_code == 200
     assert len(data) > 0, "No themes were detected"
-    
-    # Should match work and personal growth themes
+
     theme_names = [match["theme"]["name"] for match in data]
     print(f"\nDetected theme names: {theme_names}")
-    
+
     assert "work" in theme_names, "'work' theme not detected"
     assert "personal growth" in theme_names, "'personal growth' theme not detected"
-    
-    # Check confidence scores
+
     print("\nConfidence scores:")
     for match in data:
         print(f"  {match['theme']['name']}: {match['confidence_score']}")
@@ -160,7 +158,7 @@ def test_detect_themes_unauthorized(test_user, test_user2, client, sample_themes
 def test_suggest_themes(test_user, client):
     """Test theme suggestion generation"""
     text = "I've been working on improving my photography skills. The composition techniques are challenging but rewarding."
-    
+
     response = client.post(
         "/api/themes/suggest",
         headers=test_user["headers"],
@@ -169,14 +167,13 @@ def test_suggest_themes(test_user, client):
             "max_suggestions": 3
         }
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     suggestions = data["suggested_themes"]
     assert len(suggestions) <= 3
     assert len(suggestions) > 0
-    
-    # Should suggest photography-related themes
+
     suggested_phrases = [phrase.lower() for phrase in suggestions]
     assert any("photography" in phrase for phrase in suggested_phrases) or any("photographic" in phrase for phrase in suggested_phrases)
 
@@ -190,7 +187,7 @@ def test_suggest_themes_empty(test_user, client):
             "max_suggestions": 5
         }
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert len(data["suggested_themes"]) == 0 
