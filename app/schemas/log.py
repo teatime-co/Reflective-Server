@@ -1,6 +1,6 @@
 from pydantic import BaseModel, UUID4, Field
 from datetime import datetime
-from typing import List, Optional, Dict
+from typing import List, Optional
 
 class TagBase(BaseModel):
     name: str
@@ -12,50 +12,6 @@ class TagCreate(TagBase):
 
 class Tag(TagBase):
     id: UUID4
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-class ThemeBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-    confidence_threshold: float = Field(default=0.7, ge=0.0, le=1.0)
-
-class Theme(ThemeBase):
-    id: UUID4
-    created_at: datetime
-    updated_at: datetime  # Add the missing updated_at field
-    confidence_score: float = Field(ge=0.0, le=1.0)
-    detected_at: datetime
-
-    class Config:
-        from_attributes = True
-
-class LinguisticMetricsBase(BaseModel):
-    vocabulary_diversity_score: Optional[float] = None
-    sentiment_score: Optional[float] = None
-    complexity_score: Optional[float] = None
-    readability_level: Optional[float] = None
-    emotion_scores: Optional[Dict] = None
-    writing_style_metrics: Optional[Dict] = None
-
-class LinguisticMetrics(LinguisticMetricsBase):
-    id: UUID4
-    log_id: UUID4
-    processed_at: datetime
-
-    class Config:
-        from_attributes = True
-
-class EntryRevisionBase(BaseModel):
-    revision_number: int
-    content_delta: Dict
-    revision_type: str
-
-class EntryRevision(EntryRevisionBase):
-    id: UUID4
-    log_id: UUID4
     created_at: datetime
 
     class Config:
@@ -87,15 +43,11 @@ class LogUpdate(BaseModel):
 class LogResponse(LogBase):
     id: UUID4
     user_id: UUID4
-    weaviate_id: Optional[str]
     created_at: datetime
     updated_at: datetime
     word_count: Optional[int]
     processing_status: Optional[str]
     tags: List[Tag]
-    themes: List[Theme]
-    linguistic_metrics: Optional[LinguisticMetrics]
-    revisions: List[EntryRevision]
 
     class Config:
         from_attributes = True 

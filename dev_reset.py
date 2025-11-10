@@ -7,7 +7,6 @@ and seed it with test users for frontend testing.
 
 Usage:
     python dev_reset.py                    # Reset and create basic test users
-    python dev_reset.py --rich             # Reset and create users with rich journal data
     python dev_reset.py --skip-reset       # Only create users (don't reset DBs)
     python dev_reset.py --user-only EMAIL  # Create a single custom test user
 
@@ -18,11 +17,6 @@ Safety: This script will ONLY run in development mode. It checks:
 Test User Credentials:
     Email: test@example.com
     Password: testpass123
-
-    Or use the predefined personas:
-    - love@food.com / foodlover123
-    - cell@apoptosis.com / researcher123
-    - hike@man.com / hiker123
 """
 
 import sys
@@ -154,33 +148,6 @@ def seed_basic_users(db: Session) -> int:
 
     return created
 
-def seed_rich_data():
-    """Seed users with rich journal data using the existing script"""
-    print_header("Creating Rich Journal Data")
-    print_info("This will create users with detailed journal entries...")
-    print_info("Running rich_seed_data.py...")
-
-    import subprocess
-    try:
-        result = subprocess.run(
-            [sys.executable, str(project_root / "tests" / "db" / "rich_seed_data.py")],
-            capture_output=True,
-            text=True
-        )
-
-        if result.returncode == 0:
-            print_success("Rich data seeding completed!")
-            # Print some of the output
-            for line in result.stdout.split('\n'):
-                if line.strip():
-                    print(f"  {line}")
-        else:
-            print_error("Rich data seeding failed!")
-            print(result.stderr)
-
-    except Exception as e:
-        print_error(f"Error running rich seed script: {e}")
-
 def print_credentials():
     """Print test user credentials for easy reference"""
     print_header("Test User Credentials")
@@ -189,7 +156,7 @@ def print_credentials():
   Email:    test@example.com
   Password: testpass123
 
-{Colors.BOLD}Persona Accounts (with rich journal data):{Colors.ENDC}
+{Colors.BOLD}Additional Test Accounts:{Colors.ENDC}
   Food Lover:
     Email:    love@food.com
     Password: foodlover123
@@ -214,14 +181,11 @@ def main():
         epilog="""
 Examples:
   python dev_reset.py                   # Full reset with basic users
-  python dev_reset.py --rich            # Full reset with rich journal data
   python dev_reset.py --skip-reset      # Only create users (no DB reset)
   python dev_reset.py --user-only EMAIL # Create a single custom test user
         """
     )
 
-    parser.add_argument('--rich', action='store_true',
-                      help='Create users with rich journal data instead of empty accounts')
     parser.add_argument('--skip-reset', action='store_true',
                       help='Skip database reset, only create users')
     parser.add_argument('--user-only', metavar='EMAIL',
@@ -262,10 +226,6 @@ Examples:
 
             create_test_user(db, email, password, display_name)
             print_info(f"\nCredentials: {email} / {password}")
-
-        elif args.rich:
-            # Create users with rich data via API calls
-            seed_rich_data()
 
         else:
             # Create basic users
