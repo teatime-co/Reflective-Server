@@ -6,7 +6,7 @@ import os
 # Load environment variables from .env file
 load_dotenv()
 
-from app.api import logs, tags, auth, users, sessions, themes, linguistic, search
+from app.api import logs, tags, auth, users, sessions, themes, linguistic, search, encryption
 from app.database import engine
 from app.models.models import Base
 
@@ -33,14 +33,15 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(auth.router, prefix="/api")  # Add auth router first
-app.include_router(users.router, prefix="/api")  # Add users router second
+app.include_router(auth.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
 app.include_router(logs.router, prefix="/api")
 app.include_router(tags.router, prefix="/api")
-app.include_router(sessions.router, prefix="/api")  # Add new session router
-app.include_router(themes.router, prefix="/api")  # Add new theme router
-app.include_router(linguistic.router, prefix="/api")  # Add new linguistic router
-app.include_router(search.router, prefix="/api")  # Add search router
+app.include_router(sessions.router, prefix="/api")
+app.include_router(themes.router, prefix="/api")
+app.include_router(linguistic.router, prefix="/api")
+app.include_router(search.router, prefix="/api")
+app.include_router(encryption.router, prefix="/api")
 
 @app.get("/")
 async def root():

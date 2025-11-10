@@ -8,19 +8,30 @@ class UserBase(BaseModel):
     display_name: Optional[str] = None
     timezone: str = 'UTC'
     locale: str = 'en-US'
+    privacy_tier: str = 'local_only'
     daily_word_goal: int = 750
     writing_reminder_time: Optional[str] = None  # HH:MM in UTC
     theme_preferences: Optional[Dict] = None
     ai_features_enabled: bool = True
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    email: EmailStr
     password: str
+    display_name: Optional[str] = None
+    timezone: str = 'UTC'
+    locale: str = 'en-US'
+    privacy_tier: str = 'local_only'
+    daily_word_goal: int = 750
+    writing_reminder_time: Optional[str] = None
+    theme_preferences: Optional[Dict] = None
+    ai_features_enabled: bool = True
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     display_name: Optional[str] = None
     timezone: Optional[str] = None
     locale: Optional[str] = None
+    privacy_tier: Optional[str] = None
     daily_word_goal: Optional[int] = None
     writing_reminder_time: Optional[str] = None
     theme_preferences: Optional[Dict] = None

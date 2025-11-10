@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Integer, Float, ForeignKey, Table, LargeBinary, UniqueConstraint, JSON, Boolean, CheckConstraint, Enum, Text
+from sqlalchemy import Column, String, DateTime, Integer, Float, ForeignKey, Table, LargeBinary, UniqueConstraint, JSON, Boolean, CheckConstraint, Enum, Text, Index
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
@@ -66,6 +66,7 @@ class User(Base):
     queries = relationship('Query', back_populates='user', cascade='all, delete-orphan')
     themes = relationship('Theme', back_populates='user', cascade='all, delete-orphan')
     tags = relationship('Tag', back_populates='user', cascade='all, delete-orphan')
+    encrypted_metrics = relationship('EncryptedMetric', back_populates='user', cascade='all, delete-orphan')
 
 class WritingSession(Base):
     __tablename__ = 'writing_sessions'
@@ -294,4 +295,24 @@ class QueryResult(Base):
 
     # Relationships
     query = relationship('Query', back_populates='results')
-    log = relationship('Log', back_populates='query_results') 
+    log = relationship('Log', back_populates='query_results')
+
+class EncryptedMetric(Base):
+    __tablename__ = 'encrypted_metrics'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+
+    metric_type = Column(String, nullable=False)
+    encrypted_value = Column(LargeBinary, nullable=False)
+    timestamp = Column(DateTime, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    user = relationship('User', back_populates='encrypted_metrics')
+
+    # Indexes for query performance
+    __table_args__ = (
+        Index('ix_encrypted_metrics_user_type_time', 'user_id', 'metric_type', 'timestamp'),
+    ) 
