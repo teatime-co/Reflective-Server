@@ -4,8 +4,10 @@ Sync Service
 Handles encrypted backup/restore logic and conflict detection for cross-device sync.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict, Any
 from sqlalchemy.orm import Session
 import base64
 import uuid
@@ -20,8 +22,8 @@ class SyncService:
     def store_encrypted_backup(
         db: Session,
         user_id: uuid.UUID,
-        backup_data: dict
-    ) -> Tuple[Optional[EncryptedBackup], Optional[SyncConflict]]:
+        backup_data: Dict[str, Any]
+    ) -> tuple[Optional[EncryptedBackup], Optional[SyncConflict]]:
         """
         Store encrypted backup, detecting conflicts with existing backups.
 
@@ -89,7 +91,7 @@ class SyncService:
             return new_backup, None
 
     @staticmethod
-    def detect_conflict(local_backup: dict, remote_backup: EncryptedBackup) -> bool:
+    def detect_conflict(local_backup: Dict[str, Any], remote_backup: EncryptedBackup) -> bool:
         """
         Detect if local and remote versions conflict.
 
@@ -119,7 +121,7 @@ class SyncService:
         db: Session,
         user_id: uuid.UUID,
         log_id: str,
-        local_data: dict,
+        local_data: Dict[str, Any],
         remote_data: EncryptedBackup
     ) -> SyncConflict:
         """
@@ -161,7 +163,7 @@ class SyncService:
         since_timestamp: Optional[datetime] = None,
         exclude_device_id: Optional[str] = None,
         limit: int = 100
-    ) -> List[EncryptedBackup]:
+    ) -> list[EncryptedBackup]:
         """
         Fetch encrypted backups for sync.
 
@@ -242,7 +244,7 @@ class SyncService:
     def get_unresolved_conflicts(
         db: Session,
         user_id: uuid.UUID
-    ) -> List[SyncConflict]:
+    ) -> list[SyncConflict]:
         """
         Get all unresolved conflicts for a user.
 
@@ -289,6 +291,9 @@ class SyncService:
             EncryptedBackup.id == conflict.log_id,
             EncryptedBackup.user_id == user_id
         ).first()
+
+        if not backup:
+            return None
 
         chosen_version = resolution['chosen_version']
 

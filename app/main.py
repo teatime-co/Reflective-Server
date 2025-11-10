@@ -6,16 +6,13 @@ import os
 # Load environment variables from .env file
 load_dotenv()
 
-from app.api import logs, tags, auth, users, sessions, themes, linguistic, search, encryption, sync
+from app.api import tags, auth, users, encryption, sync
 from app.database import engine
 from app.models.models import Base
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
-# Ensure Weaviate data directory exists
-weaviate_data_dir = os.path.join(os.getcwd(), "weaviate-data")
-os.makedirs(weaviate_data_dir, exist_ok=True)
 
 app = FastAPI(
     title="Reflective API",
@@ -35,12 +32,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
-app.include_router(logs.router, prefix="/api")
 app.include_router(tags.router, prefix="/api")
-app.include_router(sessions.router, prefix="/api")
-app.include_router(themes.router, prefix="/api")
-app.include_router(linguistic.router, prefix="/api")
-app.include_router(search.router, prefix="/api")
 app.include_router(encryption.router, prefix="/api")
 app.include_router(sync.router, prefix="/api")
 
@@ -48,9 +40,4 @@ app.include_router(sync.router, prefix="/api")
 async def root():
     return {"message": "Welcome to Reflective API"}
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup Weaviate embedded instance on shutdown"""
-    from app.api.logs import rag_service
-    if hasattr(rag_service.client, '_embedded_db'):
-        rag_service.client._embedded_db.stop() 
+ 

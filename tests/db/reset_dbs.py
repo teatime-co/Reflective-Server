@@ -8,74 +8,25 @@ sys.path.append(project_root)
 from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
-import shutil
 import subprocess
-from app.models.models import Base, Log, Tag, Query, QueryResult
-from app.services.weaviate_rag_service import WeaviateRAGService
-import time
-
-def reset_weaviate(persistence_dir: str) -> bool:
-    """Reset Weaviate database and verify it's clean
-    
-    Args:
-        persistence_dir: Directory where Weaviate data is stored
-        
-    Returns:
-        bool: True if reset was successful, False otherwise
-    """
-    try:
-        if os.path.exists(persistence_dir):
-            shutil.rmtree(persistence_dir)
-            print("Deleted existing Weaviate data directory")
-        
-        # Create a fresh Weaviate instance
-        rag_service = WeaviateRAGService(persistence_dir=persistence_dir)
-        
-        try:
-            rag_service.client.schema.delete_all()
-            print("Cleaned up any existing Weaviate schema")
-        except Exception as e:
-            print(f"Note: No existing schema to clean up ({str(e)})")
-
-        rag_service._ensure_schema()
-        print("Created fresh Weaviate schema")
-        
-        # Verify both Log and Query classes are empty
-        for class_name in [rag_service.log_class, rag_service.query_class]:
-            result = (
-                rag_service.client.query
-                .aggregate(class_name)
-                .with_meta_count()
-                .do()
-            )
-            count = result["data"]["Aggregate"][class_name][0]["meta"]["count"]
-
-            if count > 0:
-                print(f"Warning: Class {class_name} not empty after reset! Found {count} objects")
-                return False
-            
-        return True
-
-    except Exception as e:
-        print(f"Error resetting Weaviate: {str(e)}")
-        return False
+from app.models.models import Base
 
 def verify_postgres_tables(engine) -> bool:
     """Verify that all expected tables exist and are empty
-    
+
     Args:
         engine: SQLAlchemy engine instance
-        
+
     Returns:
         bool: True if verification passes, False otherwise
     """
     try:
         inspector = inspect(engine)
         expected_tables = {
-            'logs', 'tags', 'queries', 'query_results', 'tag_log',
-            'alembic_version'  # Include Alembic version table
+            'users', 'tags', 'encrypted_metrics', 'encrypted_backups', 'sync_conflicts',
+            'alembic_version'
         }
-        
+
         actual_tables = set(inspector.get_table_names())
         missing_tables = expected_tables - actual_tables
         if missing_tables:
@@ -88,7 +39,7 @@ def verify_postgres_tables(engine) -> bool:
                 if result > 0:
                     print(f"Table '{table}' is not empty: {result} rows")
                     return False
-                    
+
         return True
 
     except Exception as e:
@@ -97,10 +48,10 @@ def verify_postgres_tables(engine) -> bool:
 
 def reset_postgres(engine) -> bool:
     """Reset PostgreSQL database
-    
+
     Args:
         engine: SQLAlchemy engine instance
-        
+
     Returns:
         bool: True if reset was successful, False otherwise
     """
@@ -119,13 +70,11 @@ def reset_postgres(engine) -> bool:
 
 def reset_databases():
     """Reset all databases to a clean state"""
-    # Load environment variables
     load_dotenv()
-    
-    # Initialize PostgreSQL connection
+
     db_url = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/reflective")
     engine = create_engine(db_url)
-    
+
     if not reset_postgres(engine):
         print("Failed to reset PostgreSQL")
         return False
@@ -142,13 +91,8 @@ def reset_databases():
         print("PostgreSQL verification failed")
         return False
 
-    persistence_dir = os.path.join(project_root, "weaviate-data")
-    if not reset_weaviate(persistence_dir):
-        print("Error resetting Weaviate")
-        return False
-
-    print("\nAll databases have been reset successfully!")
+    print("\nDatabase has been reset successfully!")
     return True
 
 if __name__ == "__main__":
-    reset_databases() 
+    reset_databases()

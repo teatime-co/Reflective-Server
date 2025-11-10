@@ -4,7 +4,9 @@ Sync API Endpoints
 Handles encrypted backup upload, fetch, delete, and conflict resolution.
 """
 
-from typing import List, Optional
+from __future__ import annotations
+
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -316,7 +318,7 @@ async def resolve_sync_conflict(
             db=db,
             conflict_id=conflict_uuid,
             user_id=current_user.id,
-            resolution=resolution.dict()
+            resolution=resolution.model_dump()
         )
 
         if not backup:

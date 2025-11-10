@@ -7,7 +7,7 @@ from fastapi.encoders import jsonable_encoder
 import uuid
 
 from app.database import get_db
-from app.models.models import Tag, Log
+from app.models.models import Tag
 from app.schemas.tags import TagResponse, TagCreate, TagUpdate
 from app.api.auth import get_current_user
 from app.schemas.user import UserResponse
@@ -55,13 +55,10 @@ async def get_tags(
     current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all tags used by the current user"""
-    # Get tags that are associated with the user's logs
+    """Get all tags created by the current user"""
     tags = (
         db.query(Tag)
-        .join(Tag.logs)
-        .filter(Log.user_id == current_user.id)
-        .distinct()
+        .filter(Tag.user_id == current_user.id)
         .order_by(Tag.name)
         .all()
     )
@@ -108,29 +105,20 @@ async def cleanup_stale_tags(
     db: Session = Depends(get_db)
 ):
     """
-    Clean up stale tags that haven't been used in the specified number of days and have no associated logs
-    from the current user. Returns the number of tags deleted.
+    Clean up stale tags that haven't been used in the specified number of days.
+    Returns the number of tags deleted.
     """
-    # Calculate the cutoff date
     cutoff_date = datetime.utcnow() - timedelta(days=days)
-    
-    # Find stale tags that have no associated logs from this user
+
     stale_tags = db.query(Tag).filter(
-        Tag.last_used_at < cutoff_date,
-        ~Tag.logs.any(Log.user_id == current_user.id)  # No associated logs from this user
+        Tag.user_id == current_user.id,
+        Tag.last_used_at < cutoff_date
     ).all()
-    
-    # Delete the stale tags
-    deleted_count = 0
+
+    deleted_count = len(stale_tags)
     for tag in stale_tags:
-        # Only delete if no other users are using this tag
-        if not db.query(Log).join(Log.tags).filter(
-            Tag.id == tag.id,
-            Log.user_id != current_user.id
-        ).first():
-            db.delete(tag)
-            deleted_count += 1
-    
+        db.delete(tag)
+
     db.commit()
-    
+
     return {"message": f"Successfully deleted {deleted_count} stale tags", "deleted_count": deleted_count} 

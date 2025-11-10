@@ -1,0 +1,26 @@
+{
+  "include": ["app", "tests"],
+  "exclude": [
+    "**/__pycache__",
+    "**/node_modules",
+    "**/.venv",
+    "**/venv",
+    "alembic/versions",
+    "weaviate-data"
+  ],
+  "pythonVersion": "3.10",
+  "pythonPlatform": "All",
+  "typeCheckingMode": "standard",
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "reportGeneralTypeIssues": true,
+  "reportOptionalMemberAccess": true,
+  "reportOptionalSubscript": true,
+  "reportPrivateImportUsage": false,
+  "reportUnboundVariable": true,
+  "reportUnnecessaryTypeIgnoreComment": true,
+  "reportUnnecessaryIsInstance": false,
+  "stubPath": "typings",
+  "venvPath": ".",
+  "venv": ".venv"
+}

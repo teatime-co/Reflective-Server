@@ -8,7 +8,6 @@ from jose import JWTError, jwt
 from pydantic import UUID4
 
 from ..database import get_db
-from ..models.models import Log
 from ..services.auth_service import (
     authenticate_user, create_user, get_user_by_email,
     create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM,
@@ -56,14 +55,9 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
 
-    try:
-        logs_count = db.query(Log).filter(Log.user_id == user.id).count()
-        total_words_result = db.query(func.sum(Log.word_count)).filter(Log.user_id == user.id).scalar()
-        total_words = int(total_words_result) if total_words_result else 0
-    except Exception as e:
-        print(f"Error calculating stats: {e}")
-        logs_count = 0
-        total_words = 0
+    # Encrypted architecture - stats computed client-side
+    logs_count = 0
+    total_words = 0
 
     try:
         user_response = UserResponse(

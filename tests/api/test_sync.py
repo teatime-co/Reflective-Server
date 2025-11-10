@@ -1,4 +1,5 @@
 import pytest
+from typing import Optional
 from fastapi import status
 from datetime import datetime, timedelta
 import base64
@@ -6,7 +7,7 @@ import uuid
 from app.models.models import User, EncryptedBackup, SyncConflict
 
 
-def create_test_backup(log_id: str = None, device_id: str = "device-1"):
+def create_test_backup(log_id: Optional[str] = None, device_id: str = "device-1"):
     """Helper function to create test backup data"""
     if log_id is None:
         log_id = str(uuid.uuid4())

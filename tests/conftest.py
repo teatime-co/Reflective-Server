@@ -12,7 +12,6 @@ from app.main import app
 from app.database import get_db, Base
 from app.models.models import User
 from app.services.auth_service import create_access_token, get_password_hash
-from app.services.weaviate_rag_service import WeaviateRAGService
 
 # Get database URL from environment
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -59,79 +58,12 @@ def reset_postgres_db():
     Base.metadata.create_all(bind=engine)
     print("Database reset complete")
 
-def reset_weaviate():
-    """Reset Weaviate by deleting and recreating schema"""
-    print("\nClearing Weaviate data...")
-    rag_service = WeaviateRAGService()
-
-    try:
-        rag_service.client.schema.delete_all()
-        print("Weaviate schema deleted")
-    except Exception as e:
-        print(f"Error deleting Weaviate schema: {e}")
-
-    try:
-        rag_service.client.schema.create_class({
-            "class": "Log",
-            "vectorizer": "none",
-            "vectorIndexConfig": {
-                "distance": "cosine"
-            },
-            "properties": [
-                {
-                    "name": "content",
-                    "dataType": ["text"]
-                },
-                {
-                    "name": "tags",
-                    "dataType": ["text[]"]
-                },
-                {
-                    "name": "sql_id",
-                    "dataType": ["text"]
-                }
-            ]
-        })
-        
-        rag_service.client.schema.create_class({
-            "class": "Query",
-            "vectorizer": "none",
-            "vectorIndexConfig": {
-                "distance": "cosine"
-            },
-            "properties": [
-                {
-                    "name": "query_text",
-                    "dataType": ["text"]
-                },
-                {
-                    "name": "sql_id",
-                    "dataType": ["text"]
-                },
-                {
-                    "name": "result_count",
-                    "dataType": ["int"]
-                },
-                {
-                    "name": "execution_time",
-                    "dataType": ["number"]
-                },
-                {
-                    "name": "created_at",
-                    "dataType": ["date"]
-                }
-            ]
-        })
-        print("Weaviate schema recreated")
-    except Exception as e:
-        print(f"Error recreating Weaviate schema: {e}")
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_database():
-    """Reset both PostgreSQL and Weaviate before running tests"""
+    """Reset PostgreSQL before running tests"""
     print("\nSetting up test environment...")
     reset_postgres_db()
-    reset_weaviate()
     yield
     print("\nTest data preserved in database")
 
@@ -258,46 +190,4 @@ def test_user2(db) -> Dict:
         "headers": {"Authorization": f"Bearer {access_token}"}
     } 
 
-@pytest.fixture
-def test_log(client, test_user, db) -> Dict:
-    """Create a test log with a tag and return it"""
-    from app.models.models import Log, Tag
-    import uuid
-    
-    # Create a test tag for this user
-    tag = Tag(
-        user_id=test_user["user"].id,
-        name=f"test_tag_{uuid.uuid4().hex[:8]}",
-        color="#FF0000",
-        created_at=datetime.utcnow(),
-        last_used_at=datetime.utcnow()
-    )
-    db.add(tag)
-    db.commit()
-    db.refresh(tag)
-    
-    # Create a test log with the tag
-    log = Log(
-        id=uuid.uuid4(),
-        user_id=test_user["user"].id,
-        content="Test log content",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
-        tags=[tag],
-        word_count=3,
-        processing_status="processed"
-    )
-    db.add(log)
-    db.commit()
-    db.refresh(log)
-    
-    return {
-        "id": log.id,
-        "content": log.content,
-        "tags": [{
-            "id": tag.id,  # This is already a UUID from the database
-            "name": tag.name,
-            "color": tag.color,
-            "created_at": tag.created_at
-        }]
-    } 
+ 

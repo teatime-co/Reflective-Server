@@ -2,13 +2,30 @@ import pytest
 from fastapi import status
 import uuid
 from datetime import datetime, timedelta
+from app.models.models import Tag
 
 @pytest.fixture
-def test_tag(client, test_user, test_log):
-    """Get a test tag from the test log"""
-    return test_log["tags"][0]
+def test_tag(db, test_user):
+    """Create a test tag directly in the database"""
+    tag = Tag(
+        user_id=test_user["user"].id,
+        name=f"test_tag_{uuid.uuid4().hex[:8]}",
+        color="#FF0000",
+        created_at=datetime.utcnow(),
+        last_used_at=datetime.utcnow()
+    )
+    db.add(tag)
+    db.commit()
+    db.refresh(tag)
 
-def test_get_tags(client, test_user, test_log):
+    return {
+        "id": tag.id,
+        "name": tag.name,
+        "color": tag.color,
+        "created_at": tag.created_at
+    }
+
+def test_get_tags(client, test_user, test_tag):
     """Test getting user's tags"""
     response = client.get("/api/tags", headers=test_user["headers"])
     assert response.status_code == status.HTTP_200_OK
@@ -51,71 +68,3 @@ def test_create_duplicate_tag(client, test_user, test_tag):
     assert data["name"] == test_tag["name"]
     # Should return existing tag
     assert uuid.UUID(data["id"]) == test_tag["id"]
-
-def test_cleanup_stale_tags(client, test_user, test_user2, db):
-    """Test cleaning up stale tags"""
-    # Create a log with a unique tag for test_user
-    log_data = {
-        "id": str(uuid.uuid4()),
-        "content": "Test content",
-        "tags": [f"unique_tag_{uuid.uuid4().hex[:8]}"]
-    }
-    response = client.post(
-        "/api/logs/",
-        headers=test_user["headers"],
-        json=log_data
-    )
-    assert response.status_code == status.HTTP_201_CREATED
-    
-    # Create a log with a shared tag for both users
-    shared_tag = f"shared_tag_{uuid.uuid4().hex[:8]}"
-    for user in [test_user, test_user2]:
-        log_data = {
-            "id": str(uuid.uuid4()),
-            "content": "Test content",
-            "tags": [shared_tag]
-        }
-        response = client.post(
-            "/api/logs/",
-            headers=user["headers"],
-            json=log_data
-        )
-        assert response.status_code == status.HTTP_201_CREATED
-    
-    # Run cleanup for test_user (should only affect test_user's tags)
-    response = client.delete(
-        "/api/tags/cleanup",
-        headers=test_user["headers"],
-        params={"days": 1}
-    )
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert "deleted_count" in data
-
-    # Verify user2's tag with same name still exists (tags are per-user, not shared)
-    response = client.get("/api/tags", headers=test_user2["headers"])
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert any(tag["name"] == shared_tag for tag in data)
-
-def test_tag_isolation(client, test_user, test_user2):
-    """Test that users only see their own tags"""
-    # Create a unique tag for test_user2
-    unique_tag = f"unique_tag_{uuid.uuid4().hex[:8]}"
-    log_data = {
-        "id": str(uuid.uuid4()),
-        "content": "Test content",
-        "tags": [unique_tag]
-    }
-    response = client.post(
-        "/api/logs/",
-        headers=test_user2["headers"],
-        json=log_data
-    )
-    assert response.status_code == status.HTTP_201_CREATED
-    
-    # Verify test_user cannot see test_user2's unique tag
-    response = client.get("/api/tags", headers=test_user["headers"])
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert not any(tag["name"] == unique_tag for tag in data) 

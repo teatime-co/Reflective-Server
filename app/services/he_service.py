@@ -16,6 +16,8 @@ Security:
 - No plaintext values on server
 """
 
+from __future__ import annotations
+
 import tenseal as ts
 import base64
 from typing import List, Dict, Any, Union
