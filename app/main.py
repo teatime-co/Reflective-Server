@@ -6,7 +6,7 @@ import os
 # Load environment variables from .env file
 load_dotenv()
 
-from app.api import logs, tags, auth, users, sessions, themes, linguistic, search, encryption
+from app.api import logs, tags, auth, users, sessions, themes, linguistic, search, encryption, sync
 from app.database import engine
 from app.models.models import Base
 
@@ -42,6 +42,7 @@ app.include_router(themes.router, prefix="/api")
 app.include_router(linguistic.router, prefix="/api")
 app.include_router(search.router, prefix="/api")
 app.include_router(encryption.router, prefix="/api")
+app.include_router(sync.router, prefix="/api")
 
 @app.get("/")
 async def root():

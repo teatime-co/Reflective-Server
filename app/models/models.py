@@ -67,6 +67,8 @@ class User(Base):
     themes = relationship('Theme', back_populates='user', cascade='all, delete-orphan')
     tags = relationship('Tag', back_populates='user', cascade='all, delete-orphan')
     encrypted_metrics = relationship('EncryptedMetric', back_populates='user', cascade='all, delete-orphan')
+    encrypted_backups = relationship('EncryptedBackup', back_populates='user', cascade='all, delete-orphan')
+    sync_conflicts = relationship('SyncConflict', back_populates='user', cascade='all, delete-orphan')
 
 class WritingSession(Base):
     __tablename__ = 'writing_sessions'
@@ -315,4 +317,66 @@ class EncryptedMetric(Base):
     # Indexes for query performance
     __table_args__ = (
         Index('ix_encrypted_metrics_user_type_time', 'user_id', 'metric_type', 'timestamp'),
+    )
+
+class EncryptedBackup(Base):
+    __tablename__ = 'encrypted_backups'
+
+    id = Column(String, primary_key=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+
+    # Encrypted content (AES-256)
+    encrypted_content = Column(LargeBinary, nullable=False)
+    content_iv = Column(String, nullable=False)
+    content_tag = Column(String, nullable=True)
+
+    # Encrypted embeddings (for cross-device search)
+    encrypted_embedding = Column(LargeBinary, nullable=True)
+    embedding_iv = Column(String, nullable=True)
+
+    # Metadata (NOT encrypted - for sync coordination)
+    created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=False)
+    device_id = Column(String, nullable=False)
+
+    # Relationships
+    user = relationship('User', back_populates='encrypted_backups')
+
+    # Indexes
+    __table_args__ = (
+        Index('ix_encrypted_backups_user_updated', 'user_id', 'updated_at'),
+        Index('ix_encrypted_backups_device', 'device_id'),
+    )
+
+class SyncConflict(Base):
+    __tablename__ = 'sync_conflicts'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    log_id = Column(String, nullable=False)
+
+    # Local version (from device requesting sync)
+    local_encrypted_content = Column(LargeBinary, nullable=False)
+    local_iv = Column(String, nullable=False)
+    local_updated_at = Column(DateTime, nullable=False)
+    local_device_id = Column(String, nullable=False)
+
+    # Remote version (from server)
+    remote_encrypted_content = Column(LargeBinary, nullable=False)
+    remote_iv = Column(String, nullable=False)
+    remote_updated_at = Column(DateTime, nullable=False)
+    remote_device_id = Column(String, nullable=False)
+
+    # Conflict metadata
+    detected_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    resolved = Column(Boolean, default=False, nullable=False)
+    resolved_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    user = relationship('User', back_populates='sync_conflicts')
+
+    # Indexes
+    __table_args__ = (
+        Index('ix_sync_conflicts_user_unresolved', 'user_id', 'resolved'),
+        Index('ix_sync_conflicts_log_id', 'log_id'),
     ) 
