@@ -256,12 +256,14 @@ async def get_sync_conflicts(
                 local_version=ConflictVersion(
                     encrypted_content=base64.b64encode(conflict.local_encrypted_content).decode('utf-8'),
                     iv=conflict.local_iv,
+                    tag=conflict.local_tag,
                     updated_at=conflict.local_updated_at,
                     device_id=conflict.local_device_id
                 ),
                 remote_version=ConflictVersion(
                     encrypted_content=base64.b64encode(conflict.remote_encrypted_content).decode('utf-8'),
                     iv=conflict.remote_iv,
+                    tag=conflict.remote_tag,
                     updated_at=conflict.remote_updated_at,
                     device_id=conflict.remote_device_id
                 ),

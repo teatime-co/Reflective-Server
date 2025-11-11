@@ -181,6 +181,7 @@ class ConflictVersion(BaseModel):
     """One version of a conflicting entry"""
     encrypted_content: str
     iv: str
+    tag: Optional[str] = Field(None, description="Authentication tag for AES-GCM (base64)")
     updated_at: datetime
     device_id: str
 
@@ -200,12 +201,14 @@ class SyncConflict(BaseModel):
             "local_version": {
                 "encrypted_content": "bG9jYWw=",
                 "iv": "bG9jYWxJVg==",
+                "tag": "bG9jYWxUYWc=",
                 "updated_at": "2025-11-09T10:30:00Z",
                 "device_id": "device-1"
             },
             "remote_version": {
                 "encrypted_content": "cmVtb3Rl",
                 "iv": "cmVtb3RlSVY=",
+                "tag": "cmVtb3RlVGFn",
                 "updated_at": "2025-11-09T10:31:00Z",
                 "device_id": "device-2"
             },

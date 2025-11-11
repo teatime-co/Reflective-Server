@@ -142,10 +142,12 @@ class SyncService:
             log_id=log_id,
             local_encrypted_content=base64.b64decode(local_data['encrypted_content']),
             local_iv=local_data['content_iv'],
+            local_tag=local_data.get('content_tag'),
             local_updated_at=local_data['updated_at'],
             local_device_id=local_data['device_id'],
             remote_encrypted_content=remote_data.encrypted_content,
             remote_iv=remote_data.content_iv,
+            remote_tag=remote_data.content_tag,
             remote_updated_at=remote_data.updated_at,
             remote_device_id=remote_data.device_id,
             detected_at=datetime.utcnow()

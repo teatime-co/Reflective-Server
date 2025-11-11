@@ -155,12 +155,14 @@ class SyncConflict(Base):
     # Local version (from device requesting sync)
     local_encrypted_content: Mapped[bytes] = mapped_column(LargeBinary)
     local_iv: Mapped[str] = mapped_column(String)
+    local_tag: Mapped[str | None] = mapped_column(String)
     local_updated_at: Mapped[datetime] = mapped_column(DateTime)
     local_device_id: Mapped[str] = mapped_column(String)
 
     # Remote version (from server)
     remote_encrypted_content: Mapped[bytes] = mapped_column(LargeBinary)
     remote_iv: Mapped[str] = mapped_column(String)
+    remote_tag: Mapped[str | None] = mapped_column(String)
     remote_updated_at: Mapped[datetime] = mapped_column(DateTime)
     remote_device_id: Mapped[str] = mapped_column(String)
 
