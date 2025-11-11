@@ -1,46 +1,119 @@
-from .sessions import SessionCreate, SessionResponse
-from .themes import (
-    ThemeBase, 
-    ThemeResponse, 
-    ThemeWithLogsResponse,
-    ThemeMatch,
-    ThemeSuggestion
-)
-from .linguistic import (
-    TextAnalysis,
-    EmotionScores,
-    WritingStyleMetrics,
-    LinguisticMetricsResponse
-)
 from .tags import (
     TagBase,
     TagCreate,
     TagUpdate,
     TagResponse
 )
+from .user import (
+    UserBase,
+    UserCreate,
+    UserUpdate,
+    User,
+    UserResponse,
+    Token,
+    TokenData,
+    WritingSession,
+    WritingSessionBase,
+    Prompt,
+    PromptBase,
+    UserInsight,
+    UserInsightBase
+)
+from .encrypted_data import (
+    EncryptedMetric,
+    EncryptedMetricBatch,
+    AggregateRequest,
+    AggregateResult,
+    HEContextResponse,
+    EncryptedContent,
+    EncryptedEmbedding,
+    EncryptedBackupData,
+    EncryptedBackupResponse,
+    EncryptedBackupList,
+    ConflictVersion,
+    SyncConflict,
+    ConflictResolution,
+    ConflictList,
+    EncryptionStatusResponse
+)
 from .user_preferences import (
     UserPreferencesResponse,
-    UserPreferencesUpdate
+    UserPreferencesUpdate,
+    PrivacyTierUpdate,
+    PrivacySettings
 )
 from .stats import UserWritingStats
+from .analytics import (
+    Theme,
+    ThemeBase,
+    ThemeAssignment,
+    LinguisticMetrics,
+    LinguisticMetricsBase,
+    LinguisticMetricsCreate,
+    LinguisticMetricsUpdate,
+    WritingAnalytics
+)
+from .log import (
+    LogBase,
+    LogCreate,
+    LogUpdate,
+    LogResponse,
+    Tag,
+    TagBase as LogTagBase,
+    TagCreate as LogTagCreate
+)
 
 __all__ = [
-    'SessionCreate',
-    'SessionResponse',
-    'ThemeBase',
-    'ThemeResponse',
-    'ThemeWithLogsResponse',
-    'ThemeMatch',
-    'ThemeSuggestion',
-    'TextAnalysis',
-    'EmotionScores',
-    'WritingStyleMetrics',
-    'LinguisticMetricsResponse',
     'TagBase',
     'TagCreate',
     'TagUpdate',
     'TagResponse',
+    'UserBase',
+    'UserCreate',
+    'UserUpdate',
+    'User',
+    'UserResponse',
+    'Token',
+    'TokenData',
+    'WritingSession',
+    'WritingSessionBase',
+    'Prompt',
+    'PromptBase',
+    'UserInsight',
+    'UserInsightBase',
+    'EncryptedMetric',
+    'EncryptedMetricBatch',
+    'AggregateRequest',
+    'AggregateResult',
+    'HEContextResponse',
+    'EncryptedContent',
+    'EncryptedEmbedding',
+    'EncryptedBackupData',
+    'EncryptedBackupResponse',
+    'EncryptedBackupList',
+    'ConflictVersion',
+    'SyncConflict',
+    'ConflictResolution',
+    'ConflictList',
+    'EncryptionStatusResponse',
     'UserPreferencesResponse',
     'UserPreferencesUpdate',
+    'PrivacyTierUpdate',
+    'PrivacySettings',
     'UserWritingStats',
+    'Theme',
+    'ThemeBase',
+    'ThemeAssignment',
+    'LinguisticMetrics',
+    'LinguisticMetricsBase',
+    'LinguisticMetricsCreate',
+    'LinguisticMetricsUpdate',
+    'WritingAnalytics',
+    'LogBase',
+    'LogCreate',
+    'LogUpdate',
+    'LogResponse',
+    'Tag',
+    'LogTagBase',
+    'LogTagCreate',
 ] 

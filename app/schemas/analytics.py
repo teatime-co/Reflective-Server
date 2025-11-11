@@ -1,6 +1,6 @@
 from pydantic import BaseModel, UUID4, Field
 from datetime import datetime
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 
 class ThemeBase(BaseModel):
     name: str
@@ -54,7 +54,7 @@ class WritingAnalytics(BaseModel):
     average_sentiment: float
     common_themes: List[Theme]
     vocabulary_growth: Dict[str, float]
-    writing_patterns: Dict[str, any]
+    writing_patterns: Dict[str, Any]
 
     class Config:
         from_attributes = True 
