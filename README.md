@@ -233,22 +233,6 @@ python dev_reset.py --skip-reset
 **Test User Credentials**:
 - Quick test: `test@example.com` / `testpass123`
 
-## Production Readiness
-
-**Before deploying to production**:
-
-- [ ] Restrict CORS to frontend domain (currently allows all origins)
-- [ ] Add rate limiting (e.g., slowapi)
-- [ ] Enable HTTPS only
-- [ ] Use strong SECRET_KEY (64+ random characters)
-- [ ] Set up database backups
-- [ ] Configure structured logging
-- [ ] Add health check endpoint (`/health`)
-- [ ] Set up monitoring (Sentry, DataDog, etc.)
-- [ ] Review privacy policy compliance (GDPR, CCPA)
-- [ ] Security audit (SQL injection, XSS, CSRF)
-- [ ] Load testing (stress test HE operations)
-
 ## Architecture Notes
 
 **Privacy Model**: Local-first with progressive enhancement. Users control what syncs.
