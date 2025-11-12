@@ -186,7 +186,7 @@ async def revoke_cloud_sync(
     db: Session = Depends(get_db)
 ):
     """Revoke cloud sync access and delete all cloud data (downgrade to local-only)"""
-    from app.models.models import EncryptedMetric, EncryptedBackup
+    from app.models.models import EncryptedMetric, EncryptedBackup, SyncConflict
 
     user = db.query(User).filter(User.id == current_user.id).first()
     if not user:
@@ -200,6 +200,10 @@ async def revoke_cloud_sync(
         EncryptedBackup.user_id == current_user.id
     ).delete()
 
+    deleted_conflicts = db.query(SyncConflict).filter(
+        SyncConflict.user_id == current_user.id
+    ).delete()
+
     user.privacy_tier = 'local_only'
     user.he_public_key = None
     user.sync_enabled_at = None
@@ -210,5 +214,6 @@ async def revoke_cloud_sync(
         "message": "Cloud sync revoked successfully. All cloud data deleted.",
         "deleted_metrics": deleted_metrics,
         "deleted_backups": deleted_backups,
+        "deleted_conflicts": deleted_conflicts,
         "new_tier": "local_only"
     } 

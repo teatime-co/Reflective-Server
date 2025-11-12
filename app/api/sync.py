@@ -26,7 +26,7 @@ from ..schemas.encrypted_data import (
     EncryptionStatusResponse
 )
 from ..services.sync_service import SyncService
-from ..models.models import EncryptedBackup
+from ..models.models import EncryptedBackup, EncryptedMetric
 
 router = APIRouter(prefix="/sync", tags=["sync"])
 
@@ -179,6 +179,35 @@ async def fetch_encrypted_backups(
         )
 
 
+@router.delete("/backup/content", response_model=dict, status_code=status.HTTP_200_OK)
+async def delete_all_encrypted_content(
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete all encrypted content backups for user (keep metrics intact).
+
+    Use case: Downgrade from full_sync to analytics_sync.
+
+    Args:
+        current_user: Authenticated user
+        db: Database session
+
+    Returns:
+        dict: Deletion confirmation with count
+    """
+    deleted_count = db.query(EncryptedBackup).filter(
+        EncryptedBackup.user_id == current_user.id
+    ).delete()
+
+    db.commit()
+
+    return {
+        "message": "All encrypted content deleted successfully",
+        "deleted_backups": deleted_count
+    }
+
+
 @router.delete("/backup/{backup_id}", response_model=EncryptionStatusResponse, status_code=status.HTTP_200_OK)
 async def delete_encrypted_backup(
     backup_id: str,
@@ -216,6 +245,35 @@ async def delete_encrypted_backup(
         message="Backup deleted successfully",
         details={"backup_id": backup_id}
     )
+
+
+@router.delete("/metrics/all", response_model=dict, status_code=status.HTTP_200_OK)
+async def delete_all_encrypted_metrics(
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete all encrypted metrics for user.
+
+    Use case: Downgrade from analytics_sync to local_only.
+
+    Args:
+        current_user: Authenticated user
+        db: Database session
+
+    Returns:
+        dict: Deletion confirmation with count
+    """
+    deleted_count = db.query(EncryptedMetric).filter(
+        EncryptedMetric.user_id == current_user.id
+    ).delete()
+
+    db.commit()
+
+    return {
+        "message": "All encrypted metrics deleted successfully",
+        "deleted_metrics": deleted_count
+    }
 
 
 @router.get("/conflicts", response_model=ConflictList, status_code=status.HTTP_200_OK)
