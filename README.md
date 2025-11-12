@@ -2,6 +2,8 @@
 
 A privacy-first journaling backend with zero-knowledge architecture, homomorphic encryption, and encrypted cross-device sync.
 
+\>> [Reflective Web Client](https://github.com/teatime-co/Reflective-App) <<
+
 ## Overview
 
 Reflective Server enables journaling with progressive privacy tiers. By default, all data stays local. Users can opt into encrypted cloud sync and privacy-preserving analytics without the server ever seeing plaintext content.
@@ -146,10 +148,12 @@ All protected endpoints require `Authorization: Bearer <token>` header.
 - `POST /api/sync/backup` - Upload encrypted backup (returns 409 if conflict detected)
 - `GET /api/sync/backups` - Fetch encrypted backups (with filters: since, device_id, limit)
 - `DELETE /api/sync/backup/{id}` - Delete specific backup
+- `DELETE /api/sync/backup/content` - Delete all encrypted backups (for tier downgrades)
+- `DELETE /api/sync/metrics/all` - Delete all encrypted metrics (for tier downgrades)
 - `GET /api/sync/conflicts` - List unresolved sync conflicts
 - `POST /api/sync/conflicts/{id}/resolve` - Resolve conflict (choose local/remote/merged)
 
-All sync endpoints require `full_sync` privacy tier.
+Most sync endpoints require `full_sync` privacy tier. See individual endpoint documentation for specific requirements.
 
 ## Database Schema
 
@@ -215,23 +219,77 @@ alembic upgrade head
 alembic downgrade -1
 ```
 
-### Development Reset
+### Development Reset & Demo Setup
 
-For testing, use the `dev_reset.py` utility to reset databases and create test users:
+For testing and demos, use the `dev_reset.py` utility to reset databases and create test users:
+
+#### Basic Reset
 
 ```bash
-# Reset databases and create test users
+# Reset PostgreSQL database and create 4 test users
 python dev_reset.py
 
-# Reset and create users with rich journal data
-python dev_reset.py --rich
+# Skip confirmation prompt (use with caution)
+python dev_reset.py --no-confirm
 
 # Only create users (skip database reset)
 python dev_reset.py --skip-reset
+
+# Create a custom test user
+python dev_reset.py --user-only myemail@example.com
 ```
 
-**Test User Credentials**:
-- Quick test: `test@example.com` / `testpass123`
+**Test User Credentials** (created by default):
+- `test@example.com` / `testpass123` - Empty account (default for frontend sync)
+- `love@food.com` / `foodlover123` - Culinary Explorer
+- `cell@apoptosis.com` / `researcher123` - Cell Biology Researcher
+- `hike@man.com` / `hiker123` - Mountain Wanderer
+
+#### Coordinated Frontend + Backend Reset
+
+When working with the Reflective web client (`reflective-web`), coordinate resets as follows:
+
+**For Local-Only Demo** (frontend only, no sync):
+```bash
+# No backend setup needed
+# Frontend operates in LOCAL_ONLY privacy tier
+```
+
+**For Synced Demo** (frontend + backend integration):
+
+```bash
+# Step 1: Reset backend (this repository)
+cd reflective-server
+python dev_reset.py
+
+# Step 2: Start backend server
+uvicorn app.main:app --reload
+# Keep this terminal running
+
+# Step 3: Reset frontend (in separate terminal)
+cd ../reflective-web
+./scripts/dev-reset.sh
+node scripts/seed-demo-data-authed.js
+
+# Step 4: Start frontend
+npm run dev
+```
+
+This creates a fully synced demo environment:
+- Backend: Empty PostgreSQL database with test@example.com account
+- Frontend: 35 demo journal entries, pre-logged-in as test@example.com
+- Privacy tier: FULL_SYNC (entries will sync to backend automatically)
+- Sync cycle: 30 seconds (watch entries upload in real-time)
+
+**Verification**:
+```bash
+# Check backend has received entries (after ~30 seconds)
+curl http://localhost:8000/api/sync/backups \
+  -H "Authorization: Bearer <token>" | jq '.backups | length'
+# Should return: 35
+```
+
+See [reflective-web/DEMO_SCRIPT.md](../reflective-web/DEMO_SCRIPT.md) for complete demo walkthrough.
 
 ## Architecture Notes
 
@@ -246,12 +304,6 @@ python dev_reset.py --skip-reset
 **Conflict Detection**: Server detects conflicts when same log ID is uploaded with different timestamps from different device IDs. User resolves via client UI.
 
 **Migration History**: 4 migrations created for privacy architecture (Nov 2025). Old plaintext system removed (11 tables dropped).
-
-## Additional Documentation
-
-For comprehensive API documentation, database schema details, and privacy architecture deep-dive, see `PENDING_CLAUDE.md`.
-
-For privacy architecture specifics, see `docs/PRIVACY_ARCHITECTURE.md` (referenced in codebase).
 
 ## License
 
