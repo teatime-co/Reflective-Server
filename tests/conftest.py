@@ -89,13 +89,9 @@ def db() -> Generator:
     try:
         yield session
     finally:
-        # Rollback any pending changes
         session.rollback()
-        # Close the session
         session.close()
-        # Rollback the transaction
         transaction.rollback()
-        # Close the connection
         connection.close()
 
 @pytest.fixture

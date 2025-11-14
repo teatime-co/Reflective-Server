@@ -7,11 +7,8 @@ When testing the frontend, you'll often need to reset your development environme
 ### Basic Usage
 
 ```bash
-# Full reset with basic test users (recommended for most testing)
+# Full reset with test users (recommended for most testing)
 python dev_reset.py
-
-# Full reset with rich journal data (for testing search, themes, etc.)
-python dev_reset.py --rich
 
 # Only create users without resetting databases
 python dev_reset.py --skip-reset
@@ -22,85 +19,31 @@ python dev_reset.py --user-only your.email@example.com
 
 ## Test User Credentials
 
-### Quick Test User (Empty Account)
-Perfect for testing account creation, first-time user experience, etc.
+All test accounts start **empty** with no journal entries. They're useful for testing authentication, privacy tiers, tag management, and encrypted sync features.
+
+### Test Accounts
 
 ```
 Email:    test@example.com
 Password: testpass123
 ```
 
-### Persona Accounts (With Rich Journal Data)
-
-Each persona has **10 diverse entries** designed to test different features:
-
-#### Food Lover (Culinary Explorer)
 ```
 Email:    love@food.com
 Password: foodlover123
 ```
 
-**10 entries covering:**
-- Restaurant discoveries (Italian trattoria, ramen shops, cafes)
-- Home cooking successes and failures (sourdough disaster → pizza success)
-- Farmer's market experiences
-- Family cooking memories (Portuguese grandmother's soup)
-- Fine dining critiques
-- Cooking experiments (Thai curry from scratch)
-- Food philosophy reflections
-
-**Test scenarios:**
-- Semantic search: "best restaurants", "cooking disasters", "Italian food"
-- Sentiment: joy, frustration, nostalgia, disappointment
-- Progression: evolution from novice to confident home cook
-- Entry variety: short reviews (50 words) to long reflections (300+ words)
-
-#### Cell Biology Researcher
 ```
 Email:    cell@apoptosis.com
 Password: researcher123
 ```
 
-**10 entries covering:**
-- Lab breakthroughs and experiment failures
-- Imposter syndrome and self-doubt
-- Conference experiences and networking
-- Writing struggles (first paper)
-- Work-life balance reflections
-- Qualifying exam success
-- Research collaboration
-- First publication acceptance
-- Future career planning
-
-**Test scenarios:**
-- Semantic search: "research breakthroughs", "feeling stressed", "academic pressure"
-- Sentiment: imposter syndrome → growing confidence
-- Technical language: apoptosis, mitochondria, CRISPR, cell biology
-- PhD journey: from anxious student to confident scientist
-
-#### Mountain Wanderer (Hiker)
 ```
 Email:    hike@man.com
 Password: hiker123
 ```
 
-**10 entries covering:**
-- Epic summits (Half Dome, Mount Russell)
-- Failed attempts and safety decisions (winter Mount Baldy)
-- Solo wilderness reflection
-- Group hikes and community
-- Trail running for joy
-- Technical scrambling
-- Hiking in challenging weather
-- Training for long-distance (JMT prep)
-- Wildlife encounters (bear)
-- Personal growth through hiking
-
-**Test scenarios:**
-- Semantic search: "difficult climbs", "peaceful moments", "winter hiking"
-- Sentiment: awe, fear, accomplishment, serenity
-- Progression: skill development over time
-- Varied experiences: solo vs group, success vs failure, different seasons
+**Note**: All accounts have `local_only` privacy tier by default. You can test privacy tier upgrades (to `analytics_sync` or `full_sync`) through the API.
 
 ## API Testing Examples
 
@@ -120,28 +63,48 @@ Response:
 }
 ```
 
-### Create a Journal Entry
+### Check Privacy Settings
 
 ```bash
-curl -X POST http://localhost:8000/api/logs/ \
+curl -X GET http://localhost:8000/api/users/me/privacy \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+```
+
+Response:
+```json
+{
+  "current_tier": "local_only",
+  "sync_enabled": false,
+  "features_available": {
+    "local_storage": true,
+    "cloud_sync": false,
+    "analytics_aggregation": false
+  }
+}
+```
+
+### Create a Tag
+
+```bash
+curl -X POST http://localhost:8000/api/tags \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "content": "Today was a great day! I learned so much about FastAPI and Vue.js.",
-    "tags": ["learning", "coding"],
-    "completion_status": "complete"
+    "name": "learning",
+    "color": "#3A7FBD"
   }'
 ```
 
-### Search Journal Entries
+### Upgrade Privacy Tier
 
 ```bash
-curl -X POST http://localhost:8000/api/search/ \
+curl -X PUT http://localhost:8000/api/users/me/privacy \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "what did I learn about coding?",
-    "limit": 5
+    "privacy_tier": "analytics_sync",
+    "consent_timestamp": "2025-11-14T10:00:00Z",
+    "he_public_key": "base64_encoded_public_key"
   }'
 ```
 
@@ -163,15 +126,11 @@ When you run `python dev_reset.py`:
    - All tables dropped and recreated
    - Alembic migrations applied
    - Fresh schema
+   - Tables: users, tags, encrypted_metrics, encrypted_backups, sync_conflicts
 
-2. **Weaviate Vector Database**
-   - Data directory deleted
-   - Schema recreated
-   - Empty Log and Query classes
-
-3. **Test Users Created**
+2. **Test Users Created**
    - 4 users with consistent credentials
-   - Optional: Rich journal data via API
+   - All accounts start empty (no journal entries)
 
 ## Workflow Examples
 
@@ -180,83 +139,29 @@ When you run `python dev_reset.py`:
 # 1. Reset to clean state
 python dev_reset.py
 
-# 2. Start backend server
+# 2. Start backend server (run this in a separate terminal)
 uvicorn app.main:app --reload
 
 # 3. Use test@example.com / testpass123 in your frontend
 ```
 
-### Testing Search and Theme Detection
+### Testing Privacy Tiers
 ```bash
-# 1. Reset and seed with rich data
-python dev_reset.py --rich
-
-# 2. Wait for rich data creation (takes ~2-3 minutes for 30 entries)
-# 3. Login as love@food.com / foodlover123
-# 4. Test semantic search with queries like "what restaurants did I visit?"
+# 1. Login as any test user
+# 2. Test tier upgrade: local_only → analytics_sync
+# 3. Upload encrypted metrics
+# 4. Request aggregated analytics
+# 5. Test tier upgrade: analytics_sync → full_sync
+# 6. Test encrypted backup sync
+# 7. Test conflict resolution with multiple devices
 ```
 
-## Comprehensive Testing Scenarios
-
-The rich seed data is specifically designed to test these features:
-
-### Semantic Search Testing
-
-**Food Lover account** - Test with:
-- `"best restaurants I've been to"` → Should find Italian trattoria, mention failures
-- `"cooking disasters"` → Should find sourdough failure entry
-- `"what made me happy about food"` → Farmer's market, grandmother's soup
-- `"Italian food experiences"` → Trattoria, comparing to fancy restaurants
-
-**Researcher account** - Test with:
-- `"times I felt like a fraud"` → Imposter syndrome entries
-- `"successful experiments"` → Breakthrough, collaboration, paper acceptance
-- `"stressful moments"` → Contamination, writing struggles, work-life balance
-- `"academic achievements"` → Qualifying exam, publication, future planning
-
-**Hiker account** - Test with:
-- `"dangerous situations in the mountains"` → Bear encounter, winter turnback
-- `"peaceful outdoor moments"` → Solo wilderness, rain hike
-- `"difficult climbs"` → Half Dome cables, scrambling
-- `"what I learned from hiking"` → Reflection entries
-
-### Keyword/Tag Search Testing
-
-Each persona has consistent tags:
-- **Food:** italian, baking, restaurant, homecooking, farmersmarket
-- **Researcher:** research, phdlife, lab, conference, publication
-- **Hiker:** hiking, summit, mountains, wilderness, solo/grouphike
-
-Test filtering by tags, combining tags, tag popularity.
-
-### Sentiment Analysis Testing
-
-Each persona has emotional range:
-- **Positive:** Joy, excitement, pride, gratitude, awe
-- **Negative:** Frustration, disappointment, anxiety, fear, defeat
-- **Mixed:** Reflective, nostalgic, bittersweet, complex emotions
-
-### Theme Detection Testing
-
-Recurring themes to test AI clustering:
-- **Food:** authenticity vs pretension, home cooking, family traditions
-- **Researcher:** imposter syndrome, scientific process, work-life balance
-- **Hiker:** solo vs community, safety decisions, personal growth
-
-### Entry Length Variety
-
-- **Very short** (50-100 words): Food lover's ramen review
-- **Medium** (150-250 words): Trail running, coffee shop discovery
-- **Long** (300-400 words): Lab breakthroughs, Half Dome summit, cooking reflections
-
-### Temporal Progression Testing
-
-Each account shows growth over time:
-- **Food:** Novice → confident home cook
-- **Researcher:** Anxious student → emerging scientist
-- **Hiker:** Casual hiker → technical mountaineer
-
-Test "show me my progress" or "how have I changed" queries.
+### Testing Tag Management
+```bash
+# 1. Create tags via API
+# 2. List all user tags
+# 3. Test tag cleanup (delete stale tags)
+```
 
 ### Testing with Custom User
 ```bash
@@ -278,15 +183,10 @@ python dev_reset.py --user-only alice@test.com
 - Check database exists: `psql -l | grep reflective`
 - Verify database permissions
 
-### "Error resetting Weaviate"
-- Ensure Weaviate is running: `curl http://localhost:8080/v1/.well-known/ready`
-- Check `weaviate-data` directory permissions
-- Try manually deleting: `rm -rf weaviate-data`
-
-### Rich data seeding fails
-- Ensure backend server is running: `uvicorn app.main:app --reload`
-- Check API is accessible: `curl http://localhost:8000/docs`
-- Verify all required services are up (PostgreSQL, Weaviate, Ollama)
+### User creation fails
+- Check PostgreSQL is accessible
+- Verify DATABASE_URL is correct in `.env`
+- Check Alembic migrations are up to date: `alembic current`
 
 ## Environment Variables
 
@@ -298,12 +198,6 @@ DATABASE_URL=postgresql://user@localhost/reflective
 
 # Authentication
 SECRET_KEY=your_secret_key_here
-
-# Weaviate
-WEAVIATE_URL=http://localhost:8080
-
-# Optional: For rich data seeding with embeddings
-OLLAMA_BASE_URL=http://localhost:11434
 ```
 
 ## Advanced: Manual Database Operations
@@ -311,30 +205,23 @@ OLLAMA_BASE_URL=http://localhost:11434
 If you need finer control:
 
 ```bash
-# Reset databases only (no user creation)
+# Reset database only (no user creation)
 python -c "from tests.db.reset_dbs import reset_databases; reset_databases()"
 
-# Create rich data only (requires server running)
-python tests/db/rich_seed_data.py
+# Run specific Alembic migration
+alembic upgrade head
+
+# Check current migration version
+alembic current
 ```
-
-## Development Tools
-
-Additional utilities are available in the `tools/` directory:
-
-```bash
-# Inspect Weaviate vector database contents
-python tools/preview_weaviate.py
-```
-
-See [tools/README.md](tools/README.md) for more information.
 
 ## Tips for Efficient Testing
 
 1. **Use the quick test user** for most frontend testing (test@example.com)
-2. **Use --skip-reset** when you just need to add more test users
-3. **Use --rich** when testing NLP features, search, or themes
-4. **Create custom users** when testing specific email formats or edge cases
+2. **Use --skip-reset** when you just need to add more test users without wiping the database
+3. **Create custom users** when testing specific email formats or edge cases
+4. **Test privacy tiers** to verify encrypted sync and analytics features work correctly
+5. **Run pytest** to verify all 108 tests pass after making changes
 
 ## Next Steps
 

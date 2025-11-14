@@ -289,8 +289,6 @@ curl http://localhost:8000/api/sync/backups \
 # Should return: 35
 ```
 
-See [reflective-web/DEMO_SCRIPT.md](../reflective-web/DEMO_SCRIPT.md) for complete demo walkthrough.
-
 ## Architecture Notes
 
 **Privacy Model**: Local-first with progressive enhancement. Users control what syncs.
