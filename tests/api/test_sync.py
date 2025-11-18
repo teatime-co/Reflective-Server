@@ -225,7 +225,7 @@ class TestFetchBackups:
         db_user.privacy_tier = 'full_sync'
         db.commit()
 
-        for i in range(10):
+        for _ in range(10):
             backup = create_test_backup()
             client.post("/api/sync/backup", headers=test_user["headers"], json=backup)
 

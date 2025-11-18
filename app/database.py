@@ -16,6 +16,12 @@ Base = declarative_base()
 
 # Dependency to get DB session
 def get_db():
+    from app.api.metrics import db_pool_size, db_pool_checked_out
+
+    pool = engine.pool
+    db_pool_size.set(pool.size())
+    db_pool_checked_out.set(pool.checkedout())
+
     db = SessionLocal()
     try:
         yield db

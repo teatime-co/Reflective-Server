@@ -22,6 +22,8 @@ import tenseal as ts
 import base64
 from typing import List, Dict, Any, Union
 import json
+import time
+from ..api.metrics import he_operation_duration, he_context_creation_duration
 
 
 class HEService:
@@ -43,6 +45,7 @@ class HEService:
         Returns:
             TenSEAL CKKS context
         """
+        start_time = time.time()
         context = ts.context(
             ts.SCHEME_TYPE.CKKS,
             poly_modulus_degree=cls.POLY_MODULUS_DEGREE,
@@ -54,6 +57,9 @@ class HEService:
             context.generate_galois_keys()
         if generate_relin_keys:
             context.generate_relin_keys()
+
+        duration = time.time() - start_time
+        he_context_creation_duration.observe(duration)
 
         return context
 
@@ -112,8 +118,11 @@ class HEService:
         Returns:
             Base64-encoded encrypted value
         """
+        start_time = time.time()
         encrypted = ts.ckks_vector(context, [value])
         serialized = encrypted.serialize()
+        duration = time.time() - start_time
+        he_operation_duration.labels(operation='encrypt').observe(duration)
         return base64.b64encode(serialized).decode('utf-8')
 
     @classmethod
@@ -162,6 +171,7 @@ class HEService:
         if not encrypted_values:
             raise ValueError("Cannot aggregate empty list")
 
+        start_time = time.time()
         result = cls.deserialize_encrypted(encrypted_values[0], context)
 
         for encrypted_val in encrypted_values[1:]:
@@ -169,6 +179,8 @@ class HEService:
             result += vec
 
         serialized = result.serialize()
+        duration = time.time() - start_time
+        he_operation_duration.labels(operation='aggregate_sum').observe(duration)
         return base64.b64encode(serialized).decode('utf-8')
 
     @classmethod
@@ -209,8 +221,11 @@ class HEService:
         Returns:
             Decrypted float value
         """
+        start_time = time.time()
         encrypted = cls.deserialize_encrypted(encrypted_b64, context)
         decrypted_list = encrypted.decrypt()
+        duration = time.time() - start_time
+        he_operation_duration.labels(operation='decrypt').observe(duration)
         return decrypted_list[0]  # Return first element (single value)
 
     @classmethod

@@ -6,7 +6,7 @@ import os
 # Load environment variables from .env file
 load_dotenv()
 
-from app.api import tags, auth, users, encryption, sync
+from app.api import tags, auth, users, encryption, sync, health, metrics
 from app.database import engine
 from app.models.models import Base
 
@@ -30,6 +30,8 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(health.router, prefix="/api")
+app.include_router(metrics.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(tags.router, prefix="/api")

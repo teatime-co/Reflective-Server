@@ -15,6 +15,7 @@ from ..services.auth_service import (
 )
 from ..schemas.user import UserCreate, UserResponse, Token, TokenData
 from ..utils.uuid_utils import ensure_uuid4
+from .metrics import auth_failed_logins, auth_jwt_errors
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/token")
@@ -43,6 +44,7 @@ async def get_current_user(
         token_data = TokenData(user_id=ensure_uuid4(user_id), email=email)
     except (JWTError, ValueError) as e:
         print(f"[DEBUG] JWT decode failed: {e}")
+        auth_jwt_errors.inc()
         raise credentials_exception
     
     # First try to get user by ID (primary method)
@@ -102,6 +104,7 @@ async def login_for_access_token(
     """Login to get access token."""
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
+        auth_failed_logins.inc()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
