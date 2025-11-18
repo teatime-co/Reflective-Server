@@ -205,14 +205,17 @@ SECRET_KEY=your_secret_key_here
 If you need finer control:
 
 ```bash
-# Reset database only (no user creation)
-python -c "from tests.db.reset_dbs import reset_databases; reset_databases()"
-
-# Run specific Alembic migration
+# Run Alembic migrations
 alembic upgrade head
 
 # Check current migration version
 alembic current
+
+# Rollback one migration
+alembic downgrade -1
+
+# Create new migration
+alembic revision --autogenerate -m "description"
 ```
 
 ## Tips for Efficient Testing
@@ -226,5 +229,6 @@ alembic current
 ## Next Steps
 
 - Read the [API documentation](http://localhost:8000/docs) (when server is running)
-- Explore the [test files](tests/) for more usage examples
-- Check [README.md](README.md) for overall project documentation
+- Check [README.md](README.md) for project overview and mission
+- See [ARCHITECTURE.md](ARCHITECTURE.md) for technical implementation details
+- Explore the [test files](tests/) for usage examples
