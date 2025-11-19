@@ -19,7 +19,10 @@ def ensure_uuid4(value: Union[str, UUID, None]) -> str:
     """Convert any UUID-like value to a string representation"""
     if value is None:
         raise ValueError("UUID cannot be None")
-    return ensure_uuid(value)
+    result = ensure_uuid(value)
+    if result is None:
+        raise ValueError("UUID conversion failed")
+    return result
 
 def format_uuid_for_weaviate(value: Union[str, UUID]) -> str:
     """Convert any UUID-like value to Weaviate format (no hyphens)"""

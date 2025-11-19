@@ -29,6 +29,8 @@ def get_password_hash(password: str) -> str:
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Create JWT access token."""
+    if not SECRET_KEY:
+        raise ValueError("SECRET_KEY environment variable not set")
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from sqlalchemy import Column, String, DateTime, Integer, Float, ForeignKey, Table, LargeBinary, UniqueConstraint, JSON, Boolean, CheckConstraint, Enum, Text, Index
 from sqlalchemy.orm import relationship, declarative_base, Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
@@ -71,7 +71,7 @@ class Tag(Base):
         return f"#{int(r * 255):02X}{int(g * 255):02X}{int(b * 255):02X}"
 
     @classmethod
-    def get_or_create(cls, db, name: str, user_id, color: str = None):
+    def get_or_create(cls, db, name: str, user_id, color: Optional[str] = None):
         normalized_name = name.strip()
 
         existing_tag = db.query(cls).filter(

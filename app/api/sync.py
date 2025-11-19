@@ -92,6 +92,12 @@ async def upload_encrypted_backup(
                 }
             )
 
+        if not backup:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to store backup"
+            )
+
         return EncryptedBackupResponse(
             id=backup.id,
             user_id=str(backup.user_id),

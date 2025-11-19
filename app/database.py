@@ -19,8 +19,8 @@ def get_db():
     from app.api.metrics import db_pool_size, db_pool_checked_out
 
     pool = engine.pool
-    db_pool_size.set(pool.size())
-    db_pool_checked_out.set(pool.checkedout())
+    db_pool_size.set(pool.size())  # type: ignore[attr-defined]
+    db_pool_checked_out.set(pool.checkedout())  # type: ignore[attr-defined]
 
     db = SessionLocal()
     try:

@@ -32,9 +32,17 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        if not SECRET_KEY:
+            raise credentials_exception
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        email: str = payload.get("email")
+        user_id_raw = payload.get("sub")
+        email_raw = payload.get("email")
+
+        if not user_id_raw or not isinstance(user_id_raw, str):
+            raise credentials_exception
+
+        user_id: str = user_id_raw
+        email: str = email_raw if isinstance(email_raw, str) else ""
         print(f"[DEBUG] Decoded JWT - user_id: {user_id}, email: {email}")
 
         if user_id is None:
