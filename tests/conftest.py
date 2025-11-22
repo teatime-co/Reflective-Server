@@ -95,14 +95,14 @@ def db() -> Generator:
         connection.close()
 
 @pytest.fixture
-def client(db) -> TestClient:
+def client(db) -> Generator[TestClient, None, None]:
     """Get test client with database dependency override"""
     def override_get_db_for_test():
         try:
             yield db
         finally:
             pass  # Let the db fixture handle cleanup
-    
+
     app.dependency_overrides[get_db] = override_get_db_for_test
     yield TestClient(app)
     app.dependency_overrides.clear()  # Clean up the override after the test
